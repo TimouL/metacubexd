@@ -10,6 +10,7 @@ import type {
   ProfileEditorSnapshot,
 } from '~/types/control'
 import {
+  addSubscriptionProxyProvider,
   applyPatch,
   diffDocument,
   hashConfigValue,
@@ -48,6 +49,11 @@ import {
 type ResourceKind = 'proxy' | 'provider' | 'group' | 'rule-provider'
 type LooseObject = Record<string, any>
 
+interface SubscriptionProviderSelection {
+  name: string
+  url: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
@@ -80,6 +86,10 @@ const resolutionDirty = ref(false)
 const sectionModal = ref<{ open: () => void; close: () => void }>()
 const resourceModal = ref<{ open: () => void; close: () => void }>()
 const previewModal = ref<{ open: () => void; close: () => void }>()
+const subscriptionPicker = ref<{
+  open: () => void
+  close: () => void
+}>()
 const editingSection = ref('')
 const sectionDraft = ref<unknown>({})
 const resourceKind = ref<ResourceKind>('proxy')
@@ -227,6 +237,25 @@ function syncDocumentData(next: LooseObject) {
   configData.value = clone(doc.data)
   yamlText.value = doc.yaml
   yamlError.value = ''
+}
+
+function addSubscriptionProvider(selection: SubscriptionProviderSelection) {
+  try {
+    const doc = addSubscriptionProxyProvider(yamlText.value, {
+      name: selection.name,
+      url: selection.url,
+    })
+    documentState.value = doc
+    configData.value = clone(doc.data)
+    yamlText.value = doc.yaml
+    yamlError.value = ''
+    mode.value = 'yaml'
+    toast.success(t('subscriptionProviderPickerAdded'))
+  } catch (error) {
+    toast.error(t('subscriptionProviderPickerFailed'), {
+      description: error instanceof Error ? error.message : String(error),
+    })
+  }
 }
 
 function switchMode(next: 'visual' | 'yaml') {
@@ -658,6 +687,13 @@ if (import.meta.client) {
             @click="resetOverlay"
           >
             {{ t('visualEditorReset') }}
+          </Button>
+          <Button
+            class="btn-info btn-sm"
+            :icon="IconCloud"
+            @click="subscriptionPicker?.open()"
+          >
+            {{ t('subscriptionProviderPickerAction') }}
           </Button>
           <Button
             class="btn-sm"
@@ -1224,5 +1260,10 @@ if (import.meta.client) {
         >
       </template>
     </Modal>
+
+    <SubscriptionProviderPicker
+      ref="subscriptionPicker"
+      @select="addSubscriptionProvider"
+    />
   </div>
 </template>

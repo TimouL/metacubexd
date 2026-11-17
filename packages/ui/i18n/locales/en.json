@@ -652,5 +652,17 @@
   "visualEditorDiagnostics": "Configuration diagnostics",
   "visualEditorManaged": "Managed",
   "quality": "Quality",
-  "sortDefault": "Default"
+  "sortDefault": "Default",
+  "subscriptionProviderPickerAction": "Add subscription provider",
+  "subscriptionProviderPickerTitle": "Add subscription as provider",
+  "subscriptionProviderPickerDescription": "Choose an existing subscription or enter a subscription URL. The provider and eligible proxy groups are inserted into the current YAML.",
+  "subscriptionProviderPickerExisting": "Existing subscriptions",
+  "subscriptionProviderPickerEmpty": "No remote subscription profiles are available.",
+  "subscriptionProviderPickerNoUsage": "Traffic information unavailable",
+  "subscriptionProviderPickerManual": "Manual subscription URL",
+  "subscriptionProviderPickerManualPlaceholder": "https://example.com/subscription",
+  "subscriptionProviderPickerInvalidUrl": "Enter a valid HTTP or HTTPS URL.",
+  "subscriptionProviderPickerAdd": "Add provider",
+  "subscriptionProviderPickerAdded": "Subscription provider inserted",
+  "subscriptionProviderPickerFailed": "Failed to insert subscription provider"
 }

@@ -652,5 +652,17 @@
   "visualEditorDiagnostics": "配置诊断",
   "visualEditorManaged": "托管",
   "quality": "质量",
-  "sortDefault": "默认"
+  "sortDefault": "默认",
+  "subscriptionProviderPickerAction": "从订阅添加供应商",
+  "subscriptionProviderPickerTitle": "将订阅添加为供应商",
+  "subscriptionProviderPickerDescription": "选择已有订阅或输入订阅地址。供应商和可用的代理组会插入到当前 YAML 中。",
+  "subscriptionProviderPickerExisting": "已有订阅",
+  "subscriptionProviderPickerEmpty": "没有可用的远程订阅配置。",
+  "subscriptionProviderPickerNoUsage": "流量信息不可用",
+  "subscriptionProviderPickerManual": "手动输入订阅地址",
+  "subscriptionProviderPickerManualPlaceholder": "https://example.com/subscription",
+  "subscriptionProviderPickerInvalidUrl": "请输入有效的 HTTP 或 HTTPS 地址。",
+  "subscriptionProviderPickerAdd": "添加供应商",
+  "subscriptionProviderPickerAdded": "已插入订阅供应商",
+  "subscriptionProviderPickerFailed": "插入订阅供应商失败"
 }

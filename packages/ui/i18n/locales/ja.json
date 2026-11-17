@@ -652,5 +652,17 @@
   "visualEditorDiagnostics": "設定の診断",
   "visualEditorManaged": "管理対象",
   "quality": "品質",
-  "sortDefault": "デフォルト"
+  "sortDefault": "デフォルト",
+  "subscriptionProviderPickerAction": "購読プロバイダーを追加",
+  "subscriptionProviderPickerTitle": "購読をプロバイダーとして追加",
+  "subscriptionProviderPickerDescription": "既存の購読を選択するか購読 URL を入力してください。プロバイダーと対象のプロキシグループが現在の YAML に追加されます。",
+  "subscriptionProviderPickerExisting": "既存の購読",
+  "subscriptionProviderPickerEmpty": "利用可能なリモート購読プロファイルがありません。",
+  "subscriptionProviderPickerNoUsage": "トラフィック情報を利用できません",
+  "subscriptionProviderPickerManual": "購読 URL を手動入力",
+  "subscriptionProviderPickerManualPlaceholder": "https://example.com/subscription",
+  "subscriptionProviderPickerInvalidUrl": "有効な HTTP または HTTPS URL を入力してください。",
+  "subscriptionProviderPickerAdd": "プロバイダーを追加",
+  "subscriptionProviderPickerAdded": "購読プロバイダーを追加しました",
+  "subscriptionProviderPickerFailed": "購読プロバイダーを追加できませんでした"
 }

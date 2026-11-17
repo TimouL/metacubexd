@@ -652,5 +652,17 @@
   "visualEditorDiagnostics": "عیب‌یابی پیکربندی",
   "visualEditorManaged": "مدیریت‌شده",
   "quality": "کیفیت",
-  "sortDefault": "پیش‌فرض"
+  "sortDefault": "پیش‌فرض",
+  "subscriptionProviderPickerAction": "افزودن ارائهدهنده اشتراک",
+  "subscriptionProviderPickerTitle": "افزودن اشتراک بهعنوان ارائهدهنده",
+  "subscriptionProviderPickerDescription": "یک اشتراک موجود را انتخاب کنید یا URL اشتراک وارد کنید. ارائهدهنده و گروههای مناسب در YAML فعلی درج میشوند.",
+  "subscriptionProviderPickerExisting": "اشتراکهای موجود",
+  "subscriptionProviderPickerEmpty": "هیچ نمایه اشتراک ازرهای موجود نیست.",
+  "subscriptionProviderPickerNoUsage": "اطلاعات ترافیک در دسترس نیست",
+  "subscriptionProviderPickerManual": "URL اشتراک دستی",
+  "subscriptionProviderPickerManualPlaceholder": "https://example.com/subscription",
+  "subscriptionProviderPickerInvalidUrl": "یک URL معتبر HTTP یا HTTPS وارد کنید.",
+  "subscriptionProviderPickerAdd": "افزودن ارائهدهنده",
+  "subscriptionProviderPickerAdded": "ارائهدهنده اشتراک درج شد",
+  "subscriptionProviderPickerFailed": "درج ارائهدهنده اشتراک شکست خورد"
 }

@@ -596,5 +596,17 @@
   "visualEditorDiagnostics": "Диагностика конфигурации",
   "visualEditorManaged": "Управляемый",
   "quality": "Качество",
-  "sortDefault": "По умолчанию"
+  "sortDefault": "По умолчанию",
+  "subscriptionProviderPickerAction": "Добавить провайдер подписки",
+  "subscriptionProviderPickerTitle": "Добавить подписку как провайдер",
+  "subscriptionProviderPickerDescription": "Выберите существующую подписку или введите URL. Провайдер и подходящие группы будут добавлены в текущий YAML.",
+  "subscriptionProviderPickerExisting": "Существующие подписки",
+  "subscriptionProviderPickerEmpty": "Нет доступных удалённых профилей подписки.",
+  "subscriptionProviderPickerNoUsage": "Информация о трафике недоступна",
+  "subscriptionProviderPickerManual": "URL подписки вручную",
+  "subscriptionProviderPickerManualPlaceholder": "https://example.com/subscription",
+  "subscriptionProviderPickerInvalidUrl": "Введите корректный HTTP- или HTTPS-URL.",
+  "subscriptionProviderPickerAdd": "Добавить провайдер",
+  "subscriptionProviderPickerAdded": "Провайдер подписки добавлен",
+  "subscriptionProviderPickerFailed": "Не удалось добавить провайдер подписки"
 }

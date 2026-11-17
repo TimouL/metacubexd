@@ -652,5 +652,17 @@
   "visualEditorDiagnostics": "설정 진단",
   "visualEditorManaged": "관리됨",
   "quality": "품질",
-  "sortDefault": "기본"
+  "sortDefault": "기본",
+  "subscriptionProviderPickerAction": "구독 공급자 추가",
+  "subscriptionProviderPickerTitle": "구독을 공급자로 추가",
+  "subscriptionProviderPickerDescription": "기존 구독을 선택하거나 구독 URL을 입력하세요. 공급자와 가능한 프록시 그룹이 현재 YAML에 추가됩니다.",
+  "subscriptionProviderPickerExisting": "기존 구독",
+  "subscriptionProviderPickerEmpty": "사용 가능한 원격 구독 프로필이 없습니다.",
+  "subscriptionProviderPickerNoUsage": "트래픽 정보를 사용할 수 없습니다",
+  "subscriptionProviderPickerManual": "수동 구독 URL",
+  "subscriptionProviderPickerManualPlaceholder": "https://example.com/subscription",
+  "subscriptionProviderPickerInvalidUrl": "올바른 HTTP 또는 HTTPS URL을 입력하세요.",
+  "subscriptionProviderPickerAdd": "공급자 추가",
+  "subscriptionProviderPickerAdded": "구독 공급자를 추가했습니다",
+  "subscriptionProviderPickerFailed": "구독 공급자를 추가하지 못했습니다"
 }
