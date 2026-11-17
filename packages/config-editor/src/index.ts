@@ -107,6 +107,11 @@ export interface ConfigPatchConflict {
   current?: ConfigValue
 }
 
+export interface SubscriptionProxyProviderInput {
+  name: string
+  url: string
+}
+
 export interface ApplyPatchResult {
   document: ConfigDocument
   conflicts: ConfigPatchConflict[]
@@ -628,6 +633,81 @@ export function replaceDocumentData(
       touched.add(key)
   }
   return openDocument(stringifyTouched(current.yaml, nextData, touched))
+}
+
+function ownConfigValue(
+  object: ConfigObject,
+  key: string,
+): ConfigValue | undefined {
+  return Object.hasOwn(object, key) ? object[key] : undefined
+}
+
+function uniqueProviderName(
+  providers: ConfigObject,
+  requestedName: string,
+): string {
+  if (ownConfigValue(providers, requestedName) === undefined)
+    return requestedName
+  let suffix = 2
+  while (ownConfigValue(providers, `${requestedName} ${suffix}`) !== undefined)
+    suffix++
+  return `${requestedName} ${suffix}`
+}
+
+/**
+ * Add a subscription URL as an HTTP proxy-provider and reference it from every
+ * eligible group. An existing provider with the same URL is reused, making the
+ * operation safe to repeat. Sections not modified here retain their YAML nodes.
+ */
+export function addSubscriptionProxyProvider(
+  source: ConfigDocument | string,
+  input: SubscriptionProxyProviderInput,
+): ConfigDocument {
+  const document = typeof source === 'string' ? openDocument(source) : source
+  const next = clone(document.data)
+  const providers = isObject(next['proxy-providers'])
+    ? next['proxy-providers']
+    : {}
+  next['proxy-providers'] = providers
+
+  let providerName: string | undefined
+  for (const [name, provider] of Object.entries(providers)) {
+    if (isObject(provider) && provider.url === input.url) {
+      providerName = name
+      break
+    }
+  }
+
+  if (!providerName) {
+    providerName = uniqueProviderName(providers, input.name.trim())
+    setOwn(providers, providerName, {
+      type: 'http',
+      url: input.url,
+      interval: 21_600,
+      'health-check': {
+        enable: true,
+        url: 'https://www.gstatic.com/generate_204',
+        interval: 600,
+        lazy: true,
+      },
+      override: { 'additional-prefix': `[${providerName}] ` },
+    } satisfies ConfigValue)
+  }
+
+  if (Array.isArray(next['proxy-groups'])) {
+    next['proxy-groups'] = next['proxy-groups'].map((group) => {
+      if (
+        !isObject(group) ||
+        !['select', 'url-test'].includes(String(group.type))
+      )
+        return group
+      const use = Array.isArray(group.use) ? [...group.use] : []
+      if (!use.includes(providerName)) use.push(providerName)
+      return { ...group, use }
+    })
+  }
+
+  return replaceDocumentData(document, next)
 }
 
 function conflict(
