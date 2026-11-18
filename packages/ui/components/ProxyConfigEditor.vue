@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import type { ConfigObject, ConfigValue } from '@metacubexd/config-editor'
-import type { SubscriptionProviderSelection } from '~/utils/subscriptionProviders'
 import {
   IconAlertTriangle,
   IconChevronDown,
   IconChevronUp,
-  IconCloud,
   IconEdit,
   IconExternalLink,
   IconPlus,
@@ -39,10 +37,6 @@ const editorModal = ref<{
 const resourceModal = ref<{
   open: () => void
   close: (force?: boolean) => void
-}>()
-const subscriptionPicker = ref<{
-  open: () => void
-  close: () => void
 }>()
 
 const resourceKind = ref<ResourceKind>('proxy')
@@ -243,17 +237,6 @@ function addProvider() {
   nextProvider.value = ''
 }
 
-function addSubscriptionProvider(selection: SubscriptionProviderSelection) {
-  try {
-    editor.addSubscriptionProvider(selection)
-    toast.success(t('subscriptionProviderPickerAdded'))
-  } catch (error) {
-    toast.error(t('subscriptionProviderPickerFailed'), {
-      description: error instanceof Error ? error.message : String(error),
-    })
-  }
-}
-
 function saveResource() {
   let advanced: unknown
   try {
@@ -416,16 +399,6 @@ defineExpose({ open })
       <p class="text-sm text-base-content/65">
         {{ t('proxyConfigEditorHint') }}
       </p>
-
-      <div class="flex justify-end">
-        <Button
-          class="btn-info btn-sm"
-          :icon="IconCloud"
-          :disabled="editor.state.value !== 'ready'"
-          @click="subscriptionPicker?.open()"
-          >{{ t('subscriptionProviderPickerAction') }}</Button
-        >
-      </div>
 
       <div class="grid gap-5 lg:grid-cols-2">
         <section class="min-w-0 rounded-xl border border-base-content/10 p-3">
@@ -613,11 +586,6 @@ defineExpose({ open })
       </template>
     </template>
   </Modal>
-
-  <SubscriptionProviderPicker
-    ref="subscriptionPicker"
-    @select="addSubscriptionProvider"
-  />
 
   <Modal
     ref="resourceModal"
