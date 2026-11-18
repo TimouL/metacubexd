@@ -864,5 +864,7 @@ const onCopyShareUrl = async () => {
       ref="subscriptionPicker"
       @select="onAddSubscriptionProvider"
     />
+
+    <NuxtPage />
   </div>
 </template>
