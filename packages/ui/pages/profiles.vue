@@ -20,6 +20,8 @@ import { insertSubscriptionProviderYaml } from '~/utils/profileInlineEditor'
 
 const { t, locale } = useI18n()
 const router = useRouter()
+const route = useRoute()
+const isEditRoute = computed(() => route.name === 'profiles-id-edit')
 const { hasFeature, ready } = useControlInfo()
 const kernelStore = useKernelStore()
 const { isShareable, qrSvg } = useShareQr()
@@ -363,508 +365,516 @@ const onCopyShareUrl = async () => {
 
 <template>
   <div class="flex h-full flex-col gap-4 overflow-y-auto p-2">
-    <!-- No-agent fallback: page renders nothing useful; keep an empty guard. -->
-    <div
-      v-if="ready && !hasFeature('profiles')"
-      class="flex h-full items-center justify-center text-base-content/60"
-    >
-      {{ t('profilesEmpty') }}
-    </div>
-
-    <template v-else>
-      <!-- Prominent subscription import (shared with the first-run wizard) -->
-      <ProfileImportHero @imported="onHeroImported" />
-
-      <!-- Profile list -->
-      <div v-if="loading" class="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div
-          v-for="i in 4"
-          :key="i"
-          class="h-28 animate-pulse rounded-xl bg-base-content/5"
-        />
-      </div>
+    <template v-if="!isEditRoute">
+      <!-- No-agent fallback: page renders nothing useful; keep an empty guard. -->
       <div
-        v-else-if="profiles.length === 0"
-        class="text-center text-base-content/60"
+        v-if="ready && !hasFeature('profiles')"
+        class="flex h-full items-center justify-center text-base-content/60"
       >
         {{ t('profilesEmpty') }}
       </div>
-      <div v-else class="grid grid-cols-1 gap-3 md:grid-cols-2">
+
+      <template v-else>
+        <!-- Prominent subscription import (shared with the first-run wizard) -->
+        <ProfileImportHero @imported="onHeroImported" />
+
+        <!-- Profile list -->
+        <div v-if="loading" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div
+            v-for="i in 4"
+            :key="i"
+            class="h-28 animate-pulse rounded-xl bg-base-content/5"
+          />
+        </div>
         <div
-          v-for="p in baseProfiles"
-          :key="p.id"
-          class="rounded-xl border bg-base-200 p-4"
-          :class="
-            p.id === activeBaseId
-              ? 'border-success/40'
-              : 'border-base-content/10'
-          "
-          :aria-current="p.id === activeBaseId ? 'true' : undefined"
+          v-else-if="profiles.length === 0"
+          class="text-center text-base-content/60"
         >
-          <div class="flex items-center justify-between gap-2">
-            <span class="min-w-0 truncate font-semibold">{{ p.name }}</span>
-            <div class="flex shrink-0 items-center gap-1.5">
-              <span
-                v-if="p.id === activeBaseId"
-                class="badge badge-sm badge-success"
-              >
-                {{ t('profilesActive') }}
-              </span>
-              <span
-                v-if="p.editorStatus === 'conflicted'"
-                class="badge badge-sm badge-warning"
-              >
-                {{ t('visualEditorConflicts') }}
-              </span>
-              <span class="badge badge-ghost badge-sm">{{ p.type }}</span>
+          {{ t('profilesEmpty') }}
+        </div>
+        <div v-else class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div
+            v-for="p in baseProfiles"
+            :key="p.id"
+            class="rounded-xl border bg-base-200 p-4"
+            :class="
+              p.id === activeBaseId
+                ? 'border-success/40'
+                : 'border-base-content/10'
+            "
+            :aria-current="p.id === activeBaseId ? 'true' : undefined"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="min-w-0 truncate font-semibold">{{ p.name }}</span>
+              <div class="flex shrink-0 items-center gap-1.5">
+                <span
+                  v-if="p.id === activeBaseId"
+                  class="badge badge-sm badge-success"
+                >
+                  {{ t('profilesActive') }}
+                </span>
+                <span
+                  v-if="p.editorStatus === 'conflicted'"
+                  class="badge badge-sm badge-warning"
+                >
+                  {{ t('visualEditorConflicts') }}
+                </span>
+                <span class="badge badge-ghost badge-sm">{{ p.type }}</span>
+              </div>
             </div>
-          </div>
 
-          <p class="mt-0.5 text-xs text-base-content/50">
-            {{
-              t('profilesUpdated', {
-                time: formatTimeFromNow(p.updatedAt, locale),
-              })
-            }}
-          </p>
+            <p class="mt-0.5 text-xs text-base-content/50">
+              {{
+                t('profilesUpdated', {
+                  time: formatTimeFromNow(p.updatedAt, locale),
+                })
+              }}
+            </p>
 
-          <SubscriptionUsageCard :info="p.subscriptionInfo" />
+            <SubscriptionUsageCard :info="p.subscriptionInfo" />
 
-          <!-- Auto-update interval (remote only). The AIO server ticks every
+            <!-- Auto-update interval (remote only). The AIO server ticks every
                minute and refreshes remote profiles whose interval elapsed; a
                refreshed active profile re-activates so the new subscription
                routes immediately (#2107). -->
-          <div
-            v-if="p.type === 'remote'"
-            class="mt-2 flex items-center gap-2 text-sm"
-          >
-            <label
-              class="text-base-content/60"
-              :for="`update-interval-${p.id}`"
+            <div
+              v-if="p.type === 'remote'"
+              class="mt-2 flex items-center gap-2 text-sm"
             >
-              {{ t('profilesAutoUpdate') }}
-            </label>
-            <select
-              :id="`update-interval-${p.id}`"
-              class="select-bordered select flex-1 select-xs"
-              :value="p.updateInterval ?? 0"
-              :disabled="isBusy(`interval:${p.id}`)"
-              @change="onUpdateInterval(p, $event)"
-            >
-              <option v-for="m in UPDATE_INTERVAL_PRESETS" :key="m" :value="m">
-                {{
-                  m === 0
-                    ? t('profilesAutoUpdateOff')
-                    : m < 60
-                      ? t('profilesAutoUpdateMinutes', { n: m })
-                      : t('profilesAutoUpdateHours', { n: m / 60 })
-                }}
-              </option>
-            </select>
-          </div>
+              <label
+                class="text-base-content/60"
+                :for="`update-interval-${p.id}`"
+              >
+                {{ t('profilesAutoUpdate') }}
+              </label>
+              <select
+                :id="`update-interval-${p.id}`"
+                class="select-bordered select flex-1 select-xs"
+                :value="p.updateInterval ?? 0"
+                :disabled="isBusy(`interval:${p.id}`)"
+                @change="onUpdateInterval(p, $event)"
+              >
+                <option
+                  v-for="m in UPDATE_INTERVAL_PRESETS"
+                  :key="m"
+                  :value="m"
+                >
+                  {{
+                    m === 0
+                      ? t('profilesAutoUpdateOff')
+                      : m < 60
+                        ? t('profilesAutoUpdateMinutes', { n: m })
+                        : t('profilesAutoUpdateHours', { n: m / 60 })
+                  }}
+                </option>
+              </select>
+            </div>
 
-          <div class="mt-3 flex flex-wrap gap-2">
-            <Button
-              v-if="hasFeature('visual-config-editor')"
-              class="btn-primary btn-xs"
-              :icon="IconBraces"
-              @click="router.push(`/profiles/${p.id}/edit`)"
-            >
-              {{ t('visualEditor') }}
-            </Button>
-            <Button
-              class="btn-xs"
-              :icon="IconPencil"
-              :loading="isBusy(`edit:${p.id}`)"
-              @click="openEditor(p.id, p.name)"
-            >
-              {{ t('profilesEdit') }}
-            </Button>
-            <Button
-              v-if="p.type === 'remote'"
-              class="btn-xs"
-              :icon="IconRefresh"
-              :loading="isBusy(`refresh:${p.id}`)"
-              @click="onRefresh(p.id)"
-            >
-              {{ t('profilesRefresh') }}
-            </Button>
-            <Button
-              v-if="p.type === 'remote'"
-              class="btn-success btn-xs"
-              :icon="IconRefresh"
-              :loading="isBusy(`refresh-apply:${p.id}`)"
-              @click="onRefreshAndApply(p.id)"
-            >
-              {{ t('profilesRefreshAndApply') }}
-            </Button>
-            <Button
-              class="btn-xs"
-              :icon="IconCopy"
-              :loading="isBusy(`duplicate:${p.id}`)"
-              @click="onDuplicate(p)"
-            >
-              {{ t('profilesDuplicate') }}
-            </Button>
-            <Button
-              v-if="p.id !== activeBaseId"
-              class="btn-success btn-xs"
-              :icon="IconPlayerPlay"
-              :loading="isBusy(`activate:${p.id}`)"
-              @click="onActivate(p.id)"
-            >
-              {{ t('profilesActivate') }}
-            </Button>
-            <Button
-              v-if="isShareable(p)"
-              class="btn-xs"
-              :icon="IconQrcode"
-              @click="onShare(p)"
-            >
-              {{ t('profilesShare') }}
-            </Button>
-            <Button
-              class="btn-error btn-xs"
-              :icon="IconTrash"
-              :loading="isBusy(`delete:${p.id}`)"
-              @click="onRemove(p.id)"
-            >
-              {{ t('profilesDelete') }}
-            </Button>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <Button
+                v-if="hasFeature('visual-config-editor')"
+                class="btn-primary btn-xs"
+                :icon="IconBraces"
+                @click="router.push(`/profiles/${p.id}/edit`)"
+              >
+                {{ t('visualEditor') }}
+              </Button>
+              <Button
+                class="btn-xs"
+                :icon="IconPencil"
+                :loading="isBusy(`edit:${p.id}`)"
+                @click="openEditor(p.id, p.name)"
+              >
+                {{ t('profilesEdit') }}
+              </Button>
+              <Button
+                v-if="p.type === 'remote'"
+                class="btn-xs"
+                :icon="IconRefresh"
+                :loading="isBusy(`refresh:${p.id}`)"
+                @click="onRefresh(p.id)"
+              >
+                {{ t('profilesRefresh') }}
+              </Button>
+              <Button
+                v-if="p.type === 'remote'"
+                class="btn-success btn-xs"
+                :icon="IconRefresh"
+                :loading="isBusy(`refresh-apply:${p.id}`)"
+                @click="onRefreshAndApply(p.id)"
+              >
+                {{ t('profilesRefreshAndApply') }}
+              </Button>
+              <Button
+                class="btn-xs"
+                :icon="IconCopy"
+                :loading="isBusy(`duplicate:${p.id}`)"
+                @click="onDuplicate(p)"
+              >
+                {{ t('profilesDuplicate') }}
+              </Button>
+              <Button
+                v-if="p.id !== activeBaseId"
+                class="btn-success btn-xs"
+                :icon="IconPlayerPlay"
+                :loading="isBusy(`activate:${p.id}`)"
+                @click="onActivate(p.id)"
+              >
+                {{ t('profilesActivate') }}
+              </Button>
+              <Button
+                v-if="isShareable(p)"
+                class="btn-xs"
+                :icon="IconQrcode"
+                @click="onShare(p)"
+              >
+                {{ t('profilesShare') }}
+              </Button>
+              <Button
+                class="btn-error btn-xs"
+                :icon="IconTrash"
+                :loading="isBusy(`delete:${p.id}`)"
+                @click="onRemove(p.id)"
+              >
+                {{ t('profilesDelete') }}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Advanced: blank profiles, merge overlays, script transforms.
+        <!-- Advanced: blank profiles, merge overlays, script transforms.
            Demoted into a collapsed disclosure so the import hero stays the
            primary action on a fresh install. -->
-      <details
-        class="rounded-xl border border-base-content/10 bg-base-200/40 p-3"
-      >
-        <summary
-          class="cursor-pointer text-sm font-semibold text-base-content/70"
+        <details
+          class="rounded-xl border border-base-content/10 bg-base-200/40 p-3"
         >
-          {{ t('profilesAdvanced') }}
-        </summary>
-        <div class="mt-4 flex flex-col gap-6">
-          <!-- New blank (local) profile -->
-          <div class="flex items-end gap-2">
-            <label class="flex flex-col gap-1 text-sm">
-              <span class="text-base-content/60">{{ t('profilesName') }}</span>
-              <input
-                v-model="newName"
-                class="input-bordered input input-sm"
-                :placeholder="t('profilesNew')"
-              />
-            </label>
-            <Button
-              class="btn-primary btn-sm"
-              :icon="IconPlus"
-              :loading="isBusy('create')"
-              @click="onCreate"
-            >
-              {{ t('profilesNew') }}
-            </Button>
-          </div>
-
-          <!-- Merge overlays: composed onto the active base when enabled. -->
-          <section class="flex flex-col gap-3">
-            <div class="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <h2 class="font-semibold text-base-content">
-                  {{ t('profilesMerges') }}
-                </h2>
-                <p class="max-w-prose text-sm text-base-content/60">
-                  {{ t('profilesMergesHelp') }}
-                </p>
-              </div>
-              <div class="flex items-end gap-2">
-                <label class="flex flex-col gap-1 text-sm">
-                  <span class="text-base-content/60">{{
-                    t('profilesName')
-                  }}</span>
-                  <input
-                    v-model="newMergeName"
-                    class="input-bordered input input-sm"
-                    :placeholder="t('profilesNewMerge')"
-                  />
-                </label>
-                <Button
-                  class="btn-primary btn-sm"
-                  :icon="IconPlus"
-                  :loading="isBusy('createMerge')"
-                  @click="onCreateMerge"
-                >
-                  {{ t('profilesNewMerge') }}
-                </Button>
-              </div>
+          <summary
+            class="cursor-pointer text-sm font-semibold text-base-content/70"
+          >
+            {{ t('profilesAdvanced') }}
+          </summary>
+          <div class="mt-4 flex flex-col gap-6">
+            <!-- New blank (local) profile -->
+            <div class="flex items-end gap-2">
+              <label class="flex flex-col gap-1 text-sm">
+                <span class="text-base-content/60">{{
+                  t('profilesName')
+                }}</span>
+                <input
+                  v-model="newName"
+                  class="input-bordered input input-sm"
+                  :placeholder="t('profilesNew')"
+                />
+              </label>
+              <Button
+                class="btn-primary btn-sm"
+                :icon="IconPlus"
+                :loading="isBusy('create')"
+                @click="onCreate"
+              >
+                {{ t('profilesNew') }}
+              </Button>
             </div>
 
-            <div
-              v-if="mergeProfiles.length"
-              class="grid grid-cols-1 gap-3 md:grid-cols-2"
-            >
+            <!-- Merge overlays: composed onto the active base when enabled. -->
+            <section class="flex flex-col gap-3">
+              <div class="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 class="font-semibold text-base-content">
+                    {{ t('profilesMerges') }}
+                  </h2>
+                  <p class="max-w-prose text-sm text-base-content/60">
+                    {{ t('profilesMergesHelp') }}
+                  </p>
+                </div>
+                <div class="flex items-end gap-2">
+                  <label class="flex flex-col gap-1 text-sm">
+                    <span class="text-base-content/60">{{
+                      t('profilesName')
+                    }}</span>
+                    <input
+                      v-model="newMergeName"
+                      class="input-bordered input input-sm"
+                      :placeholder="t('profilesNewMerge')"
+                    />
+                  </label>
+                  <Button
+                    class="btn-primary btn-sm"
+                    :icon="IconPlus"
+                    :loading="isBusy('createMerge')"
+                    @click="onCreateMerge"
+                  >
+                    {{ t('profilesNewMerge') }}
+                  </Button>
+                </div>
+              </div>
+
               <div
-                v-for="m in mergeProfiles"
-                :key="m.id"
-                class="rounded-xl border border-base-content/10 bg-base-200 p-4"
+                v-if="mergeProfiles.length"
+                class="grid grid-cols-1 gap-3 md:grid-cols-2"
               >
-                <div class="flex items-center justify-between gap-2">
-                  <span class="flex min-w-0 items-center gap-2 font-semibold">
-                    <span class="truncate">{{ m.name }}</span>
-                    <span
-                      v-if="m.managedBy === 'visual-editor'"
-                      class="badge badge-xs badge-primary"
-                    >
-                      {{ t('visualEditorManaged') }}
+                <div
+                  v-for="m in mergeProfiles"
+                  :key="m.id"
+                  class="rounded-xl border border-base-content/10 bg-base-200 p-4"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="flex min-w-0 items-center gap-2 font-semibold">
+                      <span class="truncate">{{ m.name }}</span>
+                      <span
+                        v-if="m.managedBy === 'visual-editor'"
+                        class="badge badge-xs badge-primary"
+                      >
+                        {{ t('visualEditorManaged') }}
+                      </span>
                     </span>
-                  </span>
-                  <label class="flex items-center gap-2 text-sm">
+                    <label class="flex items-center gap-2 text-sm">
+                      <span class="text-base-content/60">{{
+                        t('profilesMergeEnabled')
+                      }}</span>
+                      <input
+                        type="checkbox"
+                        class="toggle toggle-primary toggle-sm"
+                        :checked="m.enabled !== false"
+                        :disabled="
+                          isBusy(`toggle:${m.id}`) ||
+                          m.managedBy === 'visual-editor'
+                        "
+                        :aria-label="t('profilesMergeEnabled')"
+                        @change="onToggleMerge(m.id, $event)"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      v-if="m.managedBy !== 'visual-editor'"
+                      class="btn-xs"
+                      :icon="IconPencil"
+                      :loading="isBusy(`edit:${m.id}`)"
+                      @click="openEditor(m.id, m.name, 'merge')"
+                    >
+                      {{ t('profilesEdit') }}
+                    </Button>
+                    <Button
+                      class="btn-error btn-xs"
+                      :icon="IconTrash"
+                      :loading="isBusy(`delete:${m.id}`)"
+                      @click="onRemove(m.id)"
+                    >
+                      {{ t('profilesDelete') }}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Script transforms: JS run after merges during composition. -->
+            <section class="flex flex-col gap-3">
+              <div class="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 class="font-semibold text-base-content">
+                    {{ t('profilesScripts') }}
+                  </h2>
+                  <p class="max-w-prose text-sm text-base-content/60">
+                    {{ t('profilesScriptsHelp') }}
+                  </p>
+                  <p class="mt-1 max-w-prose text-sm text-warning">
+                    {{ t('profilesScriptsSafety') }}
+                  </p>
+                </div>
+                <div class="flex items-end gap-2">
+                  <label class="flex flex-col gap-1 text-sm">
                     <span class="text-base-content/60">{{
-                      t('profilesMergeEnabled')
+                      t('profilesName')
                     }}</span>
                     <input
-                      type="checkbox"
-                      class="toggle toggle-primary toggle-sm"
-                      :checked="m.enabled !== false"
-                      :disabled="
-                        isBusy(`toggle:${m.id}`) ||
-                        m.managedBy === 'visual-editor'
-                      "
-                      :aria-label="t('profilesMergeEnabled')"
-                      @change="onToggleMerge(m.id, $event)"
+                      v-model="newScriptName"
+                      class="input-bordered input input-sm"
+                      :placeholder="t('profilesNewScript')"
                     />
                   </label>
-                </div>
-
-                <div class="mt-3 flex flex-wrap gap-2">
                   <Button
-                    v-if="m.managedBy !== 'visual-editor'"
-                    class="btn-xs"
-                    :icon="IconPencil"
-                    :loading="isBusy(`edit:${m.id}`)"
-                    @click="openEditor(m.id, m.name, 'merge')"
+                    class="btn-primary btn-sm"
+                    :icon="IconPlus"
+                    :loading="isBusy('createScript')"
+                    @click="onCreateScript"
                   >
-                    {{ t('profilesEdit') }}
-                  </Button>
-                  <Button
-                    class="btn-error btn-xs"
-                    :icon="IconTrash"
-                    :loading="isBusy(`delete:${m.id}`)"
-                    @click="onRemove(m.id)"
-                  >
-                    {{ t('profilesDelete') }}
+                    {{ t('profilesNewScript') }}
                   </Button>
                 </div>
               </div>
-            </div>
-          </section>
 
-          <!-- Script transforms: JS run after merges during composition. -->
-          <section class="flex flex-col gap-3">
-            <div class="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <h2 class="font-semibold text-base-content">
-                  {{ t('profilesScripts') }}
-                </h2>
-                <p class="max-w-prose text-sm text-base-content/60">
-                  {{ t('profilesScriptsHelp') }}
-                </p>
-                <p class="mt-1 max-w-prose text-sm text-warning">
-                  {{ t('profilesScriptsSafety') }}
-                </p>
-              </div>
-              <div class="flex items-end gap-2">
-                <label class="flex flex-col gap-1 text-sm">
-                  <span class="text-base-content/60">{{
-                    t('profilesName')
-                  }}</span>
-                  <input
-                    v-model="newScriptName"
-                    class="input-bordered input input-sm"
-                    :placeholder="t('profilesNewScript')"
-                  />
-                </label>
-                <Button
-                  class="btn-primary btn-sm"
-                  :icon="IconPlus"
-                  :loading="isBusy('createScript')"
-                  @click="onCreateScript"
-                >
-                  {{ t('profilesNewScript') }}
-                </Button>
-              </div>
-            </div>
-
-            <div
-              v-if="scriptProfiles.length"
-              class="grid grid-cols-1 gap-3 md:grid-cols-2"
-            >
               <div
-                v-for="s in scriptProfiles"
-                :key="s.id"
-                class="rounded-xl border border-base-content/10 bg-base-200 p-4"
+                v-if="scriptProfiles.length"
+                class="grid grid-cols-1 gap-3 md:grid-cols-2"
               >
-                <div class="flex items-center justify-between gap-2">
-                  <span class="font-semibold">{{ s.name }}</span>
-                  <label class="flex items-center gap-2 text-sm">
-                    <span class="text-base-content/60">{{
-                      t('profilesScriptEnabled')
-                    }}</span>
-                    <input
-                      type="checkbox"
-                      class="toggle toggle-primary toggle-sm"
-                      :checked="s.enabled !== false"
-                      :disabled="isBusy(`toggle:${s.id}`)"
-                      :aria-label="t('profilesScriptEnabled')"
-                      @change="onToggleScript(s.id, $event)"
-                    />
-                  </label>
-                </div>
+                <div
+                  v-for="s in scriptProfiles"
+                  :key="s.id"
+                  class="rounded-xl border border-base-content/10 bg-base-200 p-4"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="font-semibold">{{ s.name }}</span>
+                    <label class="flex items-center gap-2 text-sm">
+                      <span class="text-base-content/60">{{
+                        t('profilesScriptEnabled')
+                      }}</span>
+                      <input
+                        type="checkbox"
+                        class="toggle toggle-primary toggle-sm"
+                        :checked="s.enabled !== false"
+                        :disabled="isBusy(`toggle:${s.id}`)"
+                        :aria-label="t('profilesScriptEnabled')"
+                        @change="onToggleScript(s.id, $event)"
+                      />
+                    </label>
+                  </div>
 
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    class="btn-xs"
-                    :icon="IconPencil"
-                    :loading="isBusy(`edit:${s.id}`)"
-                    @click="openEditor(s.id, s.name, 'script')"
-                  >
-                    {{ t('profilesEdit') }}
-                  </Button>
-                  <Button
-                    class="btn-error btn-xs"
-                    :icon="IconTrash"
-                    :loading="isBusy(`delete:${s.id}`)"
-                    @click="onRemove(s.id)"
-                  >
-                    {{ t('profilesDelete') }}
-                  </Button>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      class="btn-xs"
+                      :icon="IconPencil"
+                      :loading="isBusy(`edit:${s.id}`)"
+                      @click="openEditor(s.id, s.name, 'script')"
+                    >
+                      {{ t('profilesEdit') }}
+                    </Button>
+                    <Button
+                      class="btn-error btn-xs"
+                      :icon="IconTrash"
+                      :loading="isBusy(`delete:${s.id}`)"
+                      @click="onRemove(s.id)"
+                    >
+                      {{ t('profilesDelete') }}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        </div>
-      </details>
+            </section>
+          </div>
+        </details>
 
-      <!-- Editor -->
-      <div
-        v-if="editingId"
-        ref="editorPanelRef"
-        class="rounded-xl border border-base-content/10 bg-base-200 p-4"
-        role="region"
-        :aria-labelledby="editorHeadingId"
-        tabindex="-1"
-      >
-        <!-- Identity header: which profile + kind is open. The kind badge is
+        <!-- Editor -->
+        <div
+          v-if="editingId"
+          ref="editorPanelRef"
+          class="rounded-xl border border-base-content/10 bg-base-200 p-4"
+          role="region"
+          :aria-labelledby="editorHeadingId"
+          tabindex="-1"
+        >
+          <!-- Identity header: which profile + kind is open. The kind badge is
              only meaningful for overlays/transforms, so a plain base profile
              shows just its name. -->
-        <div :id="editorHeadingId" class="mb-3 flex items-center gap-2">
-          <IconPencil :size="16" class="shrink-0 text-base-content/60" />
-          <span class="min-w-0 truncate font-semibold">
-            {{ t('profilesEditing', { name: editingName }) }}
-          </span>
-          <span
-            v-if="editingMerge || editingScript"
-            class="badge shrink-0 badge-ghost badge-sm"
-          >
-            {{ editingScript ? t('profilesScripts') : t('profilesMerges') }}
-          </span>
-        </div>
+          <div :id="editorHeadingId" class="mb-3 flex items-center gap-2">
+            <IconPencil :size="16" class="shrink-0 text-base-content/60" />
+            <span class="min-w-0 truncate font-semibold">
+              {{ t('profilesEditing', { name: editingName }) }}
+            </span>
+            <span
+              v-if="editingMerge || editingScript"
+              class="badge shrink-0 badge-ghost badge-sm"
+            >
+              {{ editingScript ? t('profilesScripts') : t('profilesMerges') }}
+            </span>
+          </div>
 
-        <ClientOnly>
-          <MonacoYamlEditor
-            v-model="editingText"
-            :language="editingScript ? 'javascript' : 'yaml'"
-          />
-        </ClientOnly>
+          <ClientOnly>
+            <MonacoYamlEditor
+              v-model="editingText"
+              :language="editingScript ? 'javascript' : 'yaml'"
+            />
+          </ClientOnly>
 
-        <div class="mt-3 flex flex-wrap items-center gap-2">
-          <Button
-            class="btn-info btn-sm"
-            :icon="IconCloud"
-            @click="subscriptionPicker?.open()"
-          >
-            {{ t('subscriptionProviderPickerAction') }}
-          </Button>
-          <Button
-            class="btn-primary btn-sm"
-            :loading="isBusy('editor-save')"
-            @click="onSave"
-          >
-            {{ t('profilesSave') }}
-          </Button>
-          <Button
-            v-if="!editingScript"
-            class="btn-sm"
-            :loading="isBusy('editor-validate')"
-            @click="onValidate"
-          >
-            {{ t('profilesValidate') }}
-          </Button>
-          <Button class="btn-ghost btn-sm" @click="closeEditor">
-            {{ t('profilesCancel') }}
-          </Button>
-          <!-- Persistent live region (not v-if-inserted) so screen readers
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              class="btn-info btn-sm"
+              :icon="IconCloud"
+              @click="subscriptionPicker?.open()"
+            >
+              {{ t('subscriptionProviderPickerAction') }}
+            </Button>
+            <Button
+              class="btn-primary btn-sm"
+              :loading="isBusy('editor-save')"
+              @click="onSave"
+            >
+              {{ t('profilesSave') }}
+            </Button>
+            <Button
+              v-if="!editingScript"
+              class="btn-sm"
+              :loading="isBusy('editor-validate')"
+              @click="onValidate"
+            >
+              {{ t('profilesValidate') }}
+            </Button>
+            <Button class="btn-ghost btn-sm" @click="closeEditor">
+              {{ t('profilesCancel') }}
+            </Button>
+            <!-- Persistent live region (not v-if-inserted) so screen readers
                register it before the verdict text arrives, then announce the
                text change reliably. -->
-          <span
-            class="text-sm"
-            :class="
-              validationOk === null
-                ? 'invisible'
-                : validationOk
-                  ? 'text-success'
-                  : 'text-error'
-            "
-            role="status"
-            aria-live="polite"
-          >
-            {{ validationMessage }}
-          </span>
+            <span
+              class="text-sm"
+              :class="
+                validationOk === null
+                  ? 'invisible'
+                  : validationOk
+                    ? 'text-success'
+                    : 'text-error'
+              "
+              role="status"
+              aria-live="polite"
+            >
+              {{ validationMessage }}
+            </span>
+          </div>
         </div>
-      </div>
-    </template>
-
-    <!-- Subscription QR share dialog (remote profiles only). -->
-    <Modal ref="shareModalRef" :title="t('profilesShareTitle')">
-      <template #icon>
-        <IconQrcode />
       </template>
 
-      <div class="flex flex-col items-center gap-4">
-        <p class="text-sm text-base-content/60">{{ shareName }}</p>
+      <!-- Subscription QR share dialog (remote profiles only). -->
+      <Modal ref="shareModalRef" :title="t('profilesShareTitle')">
+        <template #icon>
+          <IconQrcode />
+        </template>
 
-        <!-- qrSvg is built locally from the url (uqr), not remote HTML. -->
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div
-          class="w-56 max-w-full rounded-xl bg-white p-3 [&>svg]:h-full [&>svg]:w-full"
-          v-html="shareSvg"
-        />
+        <div class="flex flex-col items-center gap-4">
+          <p class="text-sm text-base-content/60">{{ shareName }}</p>
 
-        <div class="flex w-full items-center gap-2">
-          <input
-            class="input-bordered input flex-1 font-mono text-xs input-sm"
-            :value="shareUrl"
-            readonly
-            :aria-label="t('profilesShareUrl')"
+          <!-- qrSvg is built locally from the url (uqr), not remote HTML. -->
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div
+            class="w-56 max-w-full rounded-xl bg-white p-3 [&>svg]:h-full [&>svg]:w-full"
+            v-html="shareSvg"
           />
-          <Button
-            class="btn-sm"
-            :icon="IconCopy"
-            :aria-label="t('profilesShareCopy')"
-            @click="onCopyShareUrl"
-          >
-            {{ t('profilesShareCopy') }}
-          </Button>
+
+          <div class="flex w-full items-center gap-2">
+            <input
+              class="input-bordered input flex-1 font-mono text-xs input-sm"
+              :value="shareUrl"
+              readonly
+              :aria-label="t('profilesShareUrl')"
+            />
+            <Button
+              class="btn-sm"
+              :icon="IconCopy"
+              :aria-label="t('profilesShareCopy')"
+              @click="onCopyShareUrl"
+            >
+              {{ t('profilesShareCopy') }}
+            </Button>
+          </div>
         </div>
-      </div>
-    </Modal>
+      </Modal>
 
-    <SubscriptionProviderPicker
-      ref="subscriptionPicker"
-      @select="onAddSubscriptionProvider"
-    />
+      <SubscriptionProviderPicker
+        ref="subscriptionPicker"
+        @select="onAddSubscriptionProvider"
+      />
+    </template>
 
-    <NuxtPage />
+    <NuxtPage v-else />
   </div>
 </template>

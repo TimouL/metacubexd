@@ -31,4 +31,14 @@ describe('nuxt page route outlets', () => {
 
     expect(missing.map((file) => relative(pagesDir, file))).toEqual([])
   })
+
+  it('renders the profiles list and nested editor exclusively by route', () => {
+    const source = readFileSync(join(pagesDir, 'profiles.vue'), 'utf8')
+
+    expect(source).toMatch(
+      /const\s+isEditRoute\s*=\s*computed\(\(\)\s*=>\s*route\.name\s*===\s*['"]profiles-id-edit['"]\s*\)/,
+    )
+    expect(source).toMatch(/<template\s+v-if="!isEditRoute">/)
+    expect(source).toMatch(/<NuxtPage\s+v-else\s*\/>/)
+  })
 })
