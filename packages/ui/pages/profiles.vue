@@ -1,8 +1,10 @@
 <!-- packages/ui/pages/profiles.vue -->
 <script setup lang="ts">
 import type { ProfileMeta } from '~/types/control'
+import type { SubscriptionProviderSelection } from '~/utils/subscriptionProviders'
 import {
   IconBraces,
+  IconCloud,
   IconCopy,
   IconPencil,
   IconPlayerPlay,
@@ -14,6 +16,7 @@ import {
 import { toast } from 'vue-sonner'
 import { onControlInvalidate } from '~/composables/useControlSync'
 import { controlErrorMessage } from '~/utils/controlError'
+import { insertSubscriptionProviderYaml } from '~/utils/profileInlineEditor'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -82,6 +85,7 @@ const editingScript = ref(false)
 const editingText = ref('')
 const validationMessage = ref('')
 const validationOk = ref<boolean | null>(null)
+const subscriptionPicker = ref<{ open: () => void; close: () => void }>()
 
 onMounted(() => {
   if (hasFeature('profiles'))
@@ -191,6 +195,20 @@ const onValidate = () => {
       notifyError(e)
     }
   })
+}
+
+function onAddSubscriptionProvider(selection: SubscriptionProviderSelection) {
+  try {
+    editingText.value = insertSubscriptionProviderYaml(
+      editingText.value,
+      selection,
+    )
+    toast.success(t('subscriptionProviderPickerAdded'))
+  } catch (error) {
+    toast.error(t('subscriptionProviderPickerFailed'), {
+      description: error instanceof Error ? error.message : String(error),
+    })
+  }
 }
 
 const onActivate = (id: string) => {
@@ -762,6 +780,13 @@ const onCopyShareUrl = async () => {
 
         <div class="mt-3 flex flex-wrap items-center gap-2">
           <Button
+            class="btn-info btn-sm"
+            :icon="IconCloud"
+            @click="subscriptionPicker?.open()"
+          >
+            {{ t('subscriptionProviderPickerAction') }}
+          </Button>
+          <Button
             class="btn-primary btn-sm"
             :loading="isBusy('editor-save')"
             @click="onSave"
@@ -834,5 +859,10 @@ const onCopyShareUrl = async () => {
         </div>
       </div>
     </Modal>
+
+    <SubscriptionProviderPicker
+      ref="subscriptionPicker"
+      @select="onAddSubscriptionProvider"
+    />
   </div>
 </template>
