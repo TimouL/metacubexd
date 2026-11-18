@@ -240,8 +240,11 @@ function syncDocumentData(next: LooseObject) {
 }
 
 function addSubscriptionProvider(selection: SubscriptionProviderSelection) {
+  const parsed = openDocument(yamlText.value)
+  documentState.value = parsed
+  configData.value = clone(parsed.data)
   try {
-    const doc = addSubscriptionProxyProvider(yamlText.value, {
+    const doc = addSubscriptionProxyProvider(parsed, {
       name: selection.name,
       url: selection.url,
     })
@@ -252,6 +255,7 @@ function addSubscriptionProvider(selection: SubscriptionProviderSelection) {
     mode.value = 'yaml'
     toast.success(t('subscriptionProviderPickerAdded'))
   } catch (error) {
+    yamlError.value = error instanceof Error ? error.message : String(error)
     toast.error(t('subscriptionProviderPickerFailed'), {
       description: error instanceof Error ? error.message : String(error),
     })

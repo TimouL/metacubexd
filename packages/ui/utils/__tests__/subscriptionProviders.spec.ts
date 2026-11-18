@@ -61,6 +61,17 @@ describe('subscription provider helpers', () => {
     )
   })
 
+  it('omits an absent expiry from the usage summary', () => {
+    expect(
+      formatSubscriptionUsage({
+        upload: 1,
+        download: 2,
+        total: 3,
+        expire: 0,
+      }),
+    ).toBe('3 B / 3 B')
+  })
+
   it.each([
     ['https://example.test/sub', true],
     ['http://example.test/sub', true],
