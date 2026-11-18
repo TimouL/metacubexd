@@ -3,7 +3,9 @@ import type {
   ConfigResourceReference,
   ConfigValue,
 } from '@metacubexd/config-editor'
+import type { SubscriptionProviderSelection } from '~/utils/subscriptionProviders'
 import { findResourceReferences } from '@metacubexd/config-editor'
+import { mergeSubscriptionProviderSections } from '~/utils/proxyConfigSubscriptionProviders'
 import { useActiveProfileEditor } from './useActiveProfileEditor'
 
 export interface RoutingResourceDraft {
@@ -148,6 +150,17 @@ export function useProxyConfigEditor() {
     })
   }
 
+  const addSubscriptionProvider = (
+    selection: SubscriptionProviderSelection,
+  ) => {
+    if (!session.data.value) return
+    session.replaceSections(
+      mergeSubscriptionProviderSections(session.data.value, selection),
+    )
+    proxies.value = draftsFromSection(session.data.value?.proxies)
+    groups.value = draftsFromSection(session.data.value?.['proxy-groups'])
+  }
+
   const save = async () => {
     sync()
     const result = await session.save()
@@ -175,6 +188,7 @@ export function useProxyConfigEditor() {
     move,
     remove,
     nameExists,
+    addSubscriptionProvider,
     save,
   }
 }

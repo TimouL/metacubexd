@@ -119,4 +119,23 @@ describe('useProxyConfigEditor', () => {
     expect(editor.nameExists('node')).toBe(true)
     expect(editor.nameExists('new')).toBe(false)
   })
+
+  it('adds a subscription provider through replaceSections', async () => {
+    const editor = useProxyConfigEditor()
+    await editor.load()
+    editor.addSubscriptionProvider({
+      name: 'Remote',
+      url: 'https://new.test/sub',
+    })
+
+    expect(editor.providerNames.value).toEqual(['provider', 'Remote'])
+    expect(editor.groups.value[0]?.value.use).toEqual(['provider', 'Remote'])
+    await expect(editor.save()).resolves.toBe('saved')
+    const [, patch] = api.applyProfileEditor.mock.calls[0]!
+    expect(
+      patch.operations.map(
+        (operation: { target: { path: string[] } }) => operation.target.path[0],
+      ),
+    ).toEqual(expect.arrayContaining(['proxy-providers', 'proxy-groups']))
+  })
 })
