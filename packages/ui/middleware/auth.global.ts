@@ -9,7 +9,28 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   const endpointStore = useEndpointStore()
-  const hasEndpoint = !!endpointStore.currentEndpoint
+  const hasHydratedEndpoint = !!endpointStore.currentEndpoint
+  let hasStoredEndpoint = false
+  if (!hasHydratedEndpoint && typeof localStorage !== 'undefined') {
+    try {
+      const selectedEndpoint = localStorage.getItem('selectedEndpoint')
+      const endpointList = JSON.parse(
+        localStorage.getItem('endpointList') ?? '[]',
+      ) as unknown
+      hasStoredEndpoint =
+        !!selectedEndpoint &&
+        Array.isArray(endpointList) &&
+        endpointList.some(
+          (endpoint) =>
+            !!endpoint &&
+            typeof endpoint === 'object' &&
+            (endpoint as { id?: unknown }).id === selectedEndpoint,
+        )
+    } catch {
+      hasStoredEndpoint = false
+    }
+  }
+  const hasEndpoint = hasHydratedEndpoint || hasStoredEndpoint
 
   // The landing ('/') is the connection entry and '/setup' manages backends —
   // both stay reachable without a configured endpoint (and this avoids a
