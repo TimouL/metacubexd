@@ -664,5 +664,15 @@
   "subscriptionProviderPickerInvalidUrl": "یک URL معتبر HTTP یا HTTPS وارد کنید.",
   "subscriptionProviderPickerAdd": "افزودن ارائهدهنده",
   "subscriptionProviderPickerAdded": "ارائهدهنده اشتراک درج شد",
-  "subscriptionProviderPickerFailed": "درج ارائهدهنده اشتراک شکست خورد"
+  "subscriptionProviderPickerFailed": "درج ارائهدهنده اشتراک شکست خورد",
+  "tooltipVisualEditor": "باز کردن ویرایشگر بصری",
+  "tooltipProfilesEdit": "ویرایش محتوای نمایه",
+  "tooltipProfilesRefresh": "تازهسازی این اشتراک",
+  "tooltipRefreshAndApply": "تازهسازی اشتراک و اعمال فوری",
+  "tooltipProfilesDuplicate": "کپی کردن این نمایه",
+  "tooltipProfilesShare": "اشتراکگذاری با کد QR",
+  "tooltipProfilesDelete": "حذف این نمایه",
+  "tooltipProfilesSave": "ذخیره محتوای نمایه",
+  "tooltipProfilesValidate": "ذخیره و اعتبارسنجی نمایه",
+  "tooltipProfilesCancel": "بستن ویرایشگر"
 }

@@ -475,6 +475,7 @@ const onCopyShareUrl = async () => {
                 v-if="hasFeature('visual-config-editor')"
                 class="btn-primary btn-xs"
                 :icon="IconBraces"
+                :title="t('tooltipVisualEditor')"
                 @click="router.push(`/profiles/${p.id}/edit`)"
               >
                 {{ t('visualEditor') }}
@@ -482,6 +483,7 @@ const onCopyShareUrl = async () => {
               <Button
                 class="btn-xs"
                 :icon="IconPencil"
+                :title="t('tooltipProfilesEdit')"
                 :loading="isBusy(`edit:${p.id}`)"
                 @click="openEditor(p.id, p.name)"
               >
@@ -491,6 +493,7 @@ const onCopyShareUrl = async () => {
                 v-if="p.type === 'remote'"
                 class="btn-xs"
                 :icon="IconRefresh"
+                :title="t('tooltipProfilesRefresh')"
                 :loading="isBusy(`refresh:${p.id}`)"
                 @click="onRefresh(p.id)"
               >
@@ -500,6 +503,7 @@ const onCopyShareUrl = async () => {
                 v-if="p.type === 'remote'"
                 class="btn-success btn-xs"
                 :icon="IconRefresh"
+                :title="t('tooltipRefreshAndApply')"
                 :loading="isBusy(`refresh-apply:${p.id}`)"
                 @click="onRefreshAndApply(p.id)"
               >
@@ -508,6 +512,7 @@ const onCopyShareUrl = async () => {
               <Button
                 class="btn-xs"
                 :icon="IconCopy"
+                :title="t('tooltipProfilesDuplicate')"
                 :loading="isBusy(`duplicate:${p.id}`)"
                 @click="onDuplicate(p)"
               >
@@ -526,6 +531,7 @@ const onCopyShareUrl = async () => {
                 v-if="isShareable(p)"
                 class="btn-xs"
                 :icon="IconQrcode"
+                :title="t('tooltipProfilesShare')"
                 @click="onShare(p)"
               >
                 {{ t('profilesShare') }}
@@ -533,6 +539,7 @@ const onCopyShareUrl = async () => {
               <Button
                 class="btn-error btn-xs"
                 :icon="IconTrash"
+                :title="t('tooltipProfilesDelete')"
                 :loading="isBusy(`delete:${p.id}`)"
                 @click="onRemove(p.id)"
               >
@@ -651,6 +658,7 @@ const onCopyShareUrl = async () => {
                       v-if="m.managedBy !== 'visual-editor'"
                       class="btn-xs"
                       :icon="IconPencil"
+                      :title="t('tooltipProfilesEdit')"
                       :loading="isBusy(`edit:${m.id}`)"
                       @click="openEditor(m.id, m.name, 'merge')"
                     >
@@ -659,6 +667,7 @@ const onCopyShareUrl = async () => {
                     <Button
                       class="btn-error btn-xs"
                       :icon="IconTrash"
+                      :title="t('tooltipProfilesDelete')"
                       :loading="isBusy(`delete:${m.id}`)"
                       @click="onRemove(m.id)"
                     >
@@ -735,6 +744,7 @@ const onCopyShareUrl = async () => {
                     <Button
                       class="btn-xs"
                       :icon="IconPencil"
+                      :title="t('tooltipProfilesEdit')"
                       :loading="isBusy(`edit:${s.id}`)"
                       @click="openEditor(s.id, s.name, 'script')"
                     >
@@ -743,6 +753,7 @@ const onCopyShareUrl = async () => {
                     <Button
                       class="btn-error btn-xs"
                       :icon="IconTrash"
+                      :title="t('tooltipProfilesDelete')"
                       :loading="isBusy(`delete:${s.id}`)"
                       @click="onRemove(s.id)"
                     >
@@ -791,12 +802,14 @@ const onCopyShareUrl = async () => {
             <Button
               class="btn-info btn-sm"
               :icon="IconCloud"
+              :title="t('subscriptionProviderPickerAction')"
               @click="subscriptionPicker?.open()"
             >
               {{ t('subscriptionProviderPickerAction') }}
             </Button>
             <Button
               class="btn-primary btn-sm"
+              :title="t('tooltipProfilesSave')"
               :loading="isBusy('editor-save')"
               @click="onSave"
             >
@@ -805,12 +818,17 @@ const onCopyShareUrl = async () => {
             <Button
               v-if="!editingScript"
               class="btn-sm"
+              :title="t('tooltipProfilesValidate')"
               :loading="isBusy('editor-validate')"
               @click="onValidate"
             >
               {{ t('profilesValidate') }}
             </Button>
-            <Button class="btn-ghost btn-sm" @click="closeEditor">
+            <Button
+              class="btn-ghost btn-sm"
+              :title="t('tooltipProfilesCancel')"
+              @click="closeEditor"
+            >
               {{ t('profilesCancel') }}
             </Button>
             <!-- Persistent live region (not v-if-inserted) so screen readers

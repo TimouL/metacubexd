@@ -645,6 +645,7 @@ if (import.meta.client) {
           <Button
             class="btn-ghost btn-sm"
             :icon="IconArrowLeft"
+            :title="t('visualEditorBack')"
             @click="router.push('/profiles')"
           />
           <div class="min-w-0 flex-1">
@@ -671,6 +672,7 @@ if (import.meta.client) {
             <button
               class="btn join-item btn-sm"
               :class="mode === 'visual' && 'btn-active'"
+              :title="t('tooltipVisualEditor')"
               @click="switchMode('visual')"
             >
               <IconBraces :size="16" /> {{ t('visualEditorVisual') }}
@@ -678,6 +680,7 @@ if (import.meta.client) {
             <button
               class="btn join-item btn-sm"
               :class="mode === 'yaml' && 'btn-active'"
+              :title="t('visualEditorVisual')"
               @click="switchMode('yaml')"
             >
               <IconCode :size="16" /> YAML
@@ -687,6 +690,7 @@ if (import.meta.client) {
             v-if="snapshot.profile.type === 'remote'"
             class="btn-sm btn-warning"
             :icon="IconTrash"
+            :title="t('visualEditorReset')"
             :loading="resetting"
             @click="resetOverlay"
           >
@@ -695,6 +699,7 @@ if (import.meta.client) {
           <Button
             class="btn-info btn-sm"
             :icon="IconCloud"
+            :title="t('subscriptionProviderPickerAction')"
             @click="subscriptionPicker?.open()"
           >
             {{ t('subscriptionProviderPickerAction') }}
@@ -702,6 +707,7 @@ if (import.meta.client) {
           <Button
             class="btn-sm"
             :icon="IconEye"
+            :title="t('visualEditorPreview')"
             :loading="previewing"
             :disabled="Boolean(yamlError)"
             @click="showPreview"
@@ -711,6 +717,7 @@ if (import.meta.client) {
           <Button
             class="btn-primary btn-sm"
             :icon="IconDeviceFloppy"
+            :title="t('visualEditorApply')"
             :loading="applying"
             :disabled="!dirty || Boolean(yamlError) || hasDocumentErrors"
             @click="applyChanges"

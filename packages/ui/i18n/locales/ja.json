@@ -664,5 +664,15 @@
   "subscriptionProviderPickerInvalidUrl": "有効な HTTP または HTTPS URL を入力してください。",
   "subscriptionProviderPickerAdd": "プロバイダーを追加",
   "subscriptionProviderPickerAdded": "購読プロバイダーを追加しました",
-  "subscriptionProviderPickerFailed": "購読プロバイダーを追加できませんでした"
+  "subscriptionProviderPickerFailed": "購読プロバイダーを追加できませんでした",
+  "tooltipVisualEditor": "ビジュアルエディターを開く",
+  "tooltipProfilesEdit": "プロファイル内容を編集",
+  "tooltipProfilesRefresh": "この購読を更新",
+  "tooltipRefreshAndApply": "購読を更新してすぐに適用",
+  "tooltipProfilesDuplicate": "このプロファイルを複製",
+  "tooltipProfilesShare": "この購読をQRコードで共有",
+  "tooltipProfilesDelete": "このプロファイルを削除",
+  "tooltipProfilesSave": "プロファイル内容を保存",
+  "tooltipProfilesValidate": "プロファイルを保存して検証",
+  "tooltipProfilesCancel": "エディターを閉じる"
 }

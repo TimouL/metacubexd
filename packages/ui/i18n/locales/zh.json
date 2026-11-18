@@ -664,5 +664,15 @@
   "subscriptionProviderPickerInvalidUrl": "请输入有效的 HTTP 或 HTTPS 地址。",
   "subscriptionProviderPickerAdd": "添加供应商",
   "subscriptionProviderPickerAdded": "已插入订阅供应商",
-  "subscriptionProviderPickerFailed": "插入订阅供应商失败"
+  "subscriptionProviderPickerFailed": "插入订阅供应商失败",
+  "tooltipVisualEditor": "打开可视化编辑器",
+  "tooltipProfilesEdit": "编辑配置文件内容",
+  "tooltipProfilesRefresh": "刷新此订阅",
+  "tooltipRefreshAndApply": "刷新订阅并立即应用",
+  "tooltipProfilesDuplicate": "复制此配置文件",
+  "tooltipProfilesShare": "以二维码分享此订阅",
+  "tooltipProfilesDelete": "删除此配置文件",
+  "tooltipProfilesSave": "保存配置文件",
+  "tooltipProfilesValidate": "保存并验证配置文件",
+  "tooltipProfilesCancel": "关闭编辑器"
 }

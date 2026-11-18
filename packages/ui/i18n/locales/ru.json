@@ -608,5 +608,15 @@
   "subscriptionProviderPickerInvalidUrl": "Введите корректный HTTP- или HTTPS-URL.",
   "subscriptionProviderPickerAdd": "Добавить провайдер",
   "subscriptionProviderPickerAdded": "Провайдер подписки добавлен",
-  "subscriptionProviderPickerFailed": "Не удалось добавить провайдер подписки"
+  "subscriptionProviderPickerFailed": "Не удалось добавить провайдер подписки",
+  "tooltipVisualEditor": "Открыть визуальный редактор",
+  "tooltipProfilesEdit": "Редактировать содержимое профиля",
+  "tooltipProfilesRefresh": "Обновить эту подписку",
+  "tooltipRefreshAndApply": "Обновить подписку и применить сейчас",
+  "tooltipProfilesDuplicate": "Дублировать этот профиль",
+  "tooltipProfilesShare": "Поделиться подпиской через QR-код",
+  "tooltipProfilesDelete": "Удалить этот профиль",
+  "tooltipProfilesSave": "Сохранить содержимое профиля",
+  "tooltipProfilesValidate": "Сохранить и проверить профиль",
+  "tooltipProfilesCancel": "Закрыть редактор"
 }

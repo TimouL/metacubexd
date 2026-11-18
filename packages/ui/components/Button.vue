@@ -7,6 +7,7 @@ interface Props {
   disabled?: boolean
   icon?: Component
   class?: string
+  title?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -27,6 +28,7 @@ const needsBtnClass = computed(() => buttonClass.value.includes('btn-'))
 <template>
   <button
     :type="type"
+    :title="title"
     class="btn-press inline-flex items-center justify-center gap-2"
     :class="[
       needsBtnClass && 'btn',

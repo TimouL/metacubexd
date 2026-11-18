@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type {MobileNavReselectDetail} from '~/constants';
+import type { MobileNavReselectDetail } from '~/constants'
 import {
   IconChartAreaLine,
+  IconFileCode,
   IconFileStack,
   IconGlobe,
   IconHome,
@@ -12,15 +13,11 @@ import {
   IconSettings,
   IconX,
 } from '@tabler/icons-vue'
-import {
-  MOBILE_NAV_RESELECT_EVENT,
-  
-  ROUTES
-} from '~/constants'
+import { MOBILE_NAV_RESELECT_EVENT, ROUTES } from '~/constants'
 
 const { t } = useI18n()
 const route = useRoute()
-const { hasAgent } = useControlInfo()
+const { hasAgent, hasFeature } = useControlInfo()
 
 // Primary 4 nav items (around the FAB)
 const primaryItems = computed(() => [
@@ -48,6 +45,13 @@ const secondaryItems = computed(() => {
       href: '/control',
       name: t('controlCenter'),
       icon: IconServerCog,
+    })
+  }
+  if (hasFeature('profiles')) {
+    items.unshift({
+      href: '/profiles',
+      name: t('profiles'),
+      icon: IconFileCode,
     })
   }
   return items

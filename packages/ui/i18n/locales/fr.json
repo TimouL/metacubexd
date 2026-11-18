@@ -664,5 +664,15 @@
   "subscriptionProviderPickerInvalidUrl": "Saisissez une URL HTTP ou HTTPS valide.",
   "subscriptionProviderPickerAdd": "Ajouter le fournisseur",
   "subscriptionProviderPickerAdded": "Fournisseur inséré",
-  "subscriptionProviderPickerFailed": "Échec de l'insertion du fournisseur"
+  "subscriptionProviderPickerFailed": "Échec de l'insertion du fournisseur",
+  "tooltipVisualEditor": "Ouvrir l'éditeur visuel",
+  "tooltipProfilesEdit": "Modifier le contenu du profil",
+  "tooltipProfilesRefresh": "Actualiser cet abonnement",
+  "tooltipRefreshAndApply": "Actualiser l'abonnement et l'appliquer",
+  "tooltipProfilesDuplicate": "Dupliquer ce profil",
+  "tooltipProfilesShare": "Partager cet abonnement en QR code",
+  "tooltipProfilesDelete": "Supprimer ce profil",
+  "tooltipProfilesSave": "Enregistrer le contenu du profil",
+  "tooltipProfilesValidate": "Enregistrer et valider le profil",
+  "tooltipProfilesCancel": "Fermer l'éditeur"
 }
