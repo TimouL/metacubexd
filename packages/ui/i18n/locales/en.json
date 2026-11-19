@@ -640,8 +640,8 @@
   "visualEditorAddField": "Add a field",
   "visualEditorPreview": "Review changes",
   "visualEditorPreviewFailed": "Failed to prepare preview",
-  "visualEditorApply": "Validate and apply",
-  "visualEditorActivate": "Validate and activate",
+  "visualEditorApply": "Validate and save",
+  "visualEditorActivate": "Validate and save",
   "visualEditorApplied": "Configuration applied",
   "visualEditorApplyFailed": "Failed to apply configuration",
   "visualEditorLeaveConfirm": "Discard unsaved visual editor changes?",
@@ -674,5 +674,8 @@
   "tooltipProfilesDelete": "Delete this profile",
   "tooltipProfilesSave": "Save profile contents",
   "tooltipProfilesValidate": "Save and validate this profile",
-  "tooltipProfilesCancel": "Close the editor"
+  "tooltipProfilesCancel": "Close the editor",
+  "visualEditorSaved": "Configuration saved",
+  "tooltipAddProxy": "Add proxy",
+  "tooltipAddProvider": "Add subscription provider"
 }

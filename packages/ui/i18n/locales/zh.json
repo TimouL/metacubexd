@@ -640,8 +640,8 @@
   "visualEditorAddField": "添加字段",
   "visualEditorPreview": "检查变更",
   "visualEditorPreviewFailed": "无法生成变更预览",
-  "visualEditorApply": "验证并应用",
-  "visualEditorActivate": "验证并激活",
+  "visualEditorApply": "验证并保存",
+  "visualEditorActivate": "验证并保存",
   "visualEditorApplied": "配置已应用",
   "visualEditorApplyFailed": "配置应用失败",
   "visualEditorLeaveConfirm": "放弃尚未保存的可视化编辑吗？",
@@ -674,5 +674,8 @@
   "tooltipProfilesDelete": "删除此配置文件",
   "tooltipProfilesSave": "保存配置文件",
   "tooltipProfilesValidate": "保存并验证配置文件",
-  "tooltipProfilesCancel": "关闭编辑器"
+  "tooltipProfilesCancel": "关闭编辑器",
+  "visualEditorSaved": "配置已保存",
+  "tooltipAddProxy": "添加节点",
+  "tooltipAddProvider": "添加订阅供应商"
 }

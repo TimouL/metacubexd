@@ -640,8 +640,8 @@
   "visualEditorAddField": "افزودن فیلد",
   "visualEditorPreview": "بررسی تغییرات",
   "visualEditorPreviewFailed": "آماده‌سازی پیش‌نمایش ناموفق بود",
-  "visualEditorApply": "اعتبارسنجی و اعمال",
-  "visualEditorActivate": "اعتبارسنجی و فعال‌سازی",
+  "visualEditorApply": "اعتبارسنجی و ذخیره",
+  "visualEditorActivate": "اعتبارسنجی و ذخیره",
   "visualEditorApplied": "پیکربندی اعمال شد",
   "visualEditorApplyFailed": "اعمال پیکربندی ناموفق بود",
   "visualEditorLeaveConfirm": "تغییرات ذخیره‌نشده کنار گذاشته شوند؟",
@@ -674,5 +674,8 @@
   "tooltipProfilesDelete": "حذف این نمایه",
   "tooltipProfilesSave": "ذخیره محتوای نمایه",
   "tooltipProfilesValidate": "ذخیره و اعتبارسنجی نمایه",
-  "tooltipProfilesCancel": "بستن ویرایشگر"
+  "tooltipProfilesCancel": "بستن ویرایشگر",
+  "visualEditorSaved": "پیکربندی ذخیره شد",
+  "tooltipAddProxy": "افزودن پروکسی",
+  "tooltipAddProvider": "افزودن ارائهدهنده اشتراک"
 }

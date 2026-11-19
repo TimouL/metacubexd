@@ -120,6 +120,41 @@ describe('profile config editor', () => {
     expect((await profiles.compose('id1')).content).toContain('type: ss')
   })
 
+  it('validates and saves without activating or restarting when activate is false', async () => {
+    const home = mkdtempSync(join(tmpdir(), 'mcxd-editor-no-activate-'))
+    const profiles = createProfileStore({
+      dir: join(home, 'profiles'),
+      activeConfigPath: join(home, 'active.yaml'),
+      idGen: (() => {
+        let n = 0
+        return () => `id${++n}`
+      })(),
+    })
+    await profiles.create({ name: 'active', content: 'mode: rule\n' })
+    await profiles.create({ name: 'draft', content: 'mode: direct\n' })
+    await profiles.setActive('id1')
+    const beforeActive = readFileSync(join(home, 'active.yaml'), 'utf8')
+    const sup = supervisor()
+    const editor = createProfileConfigEditor({
+      profiles,
+      supervisor: sup,
+      homeDir: home,
+    })
+    const opened = await editor.open('id2')
+
+    const result = await editor.apply(
+      'id2',
+      diffDocument(opened.editableYaml, 'mode: global\n'),
+      { activate: false },
+    )
+
+    expect(result.activeId).toBe('id1')
+    expect(await profiles.getActiveId()).toBe('id1')
+    expect(readFileSync(join(home, 'active.yaml'), 'utf8')).toBe(beforeActive)
+    expect(await profiles.read('id2')).toBe('mode: global\n')
+    expect(sup.restart).not.toHaveBeenCalled()
+  })
+
   it('restores persisted and active state when the restart fails', async () => {
     const home = mkdtempSync(join(tmpdir(), 'mcxd-editor-rollback-'))
     let sequence = 0

@@ -208,6 +208,7 @@ describe('composables/useControlApi methods', () => {
     await api.getProfileEditor('id1')
     await api.previewProfileEditor('id1', patch)
     await api.applyProfileEditor('id1', patch)
+    await api.applyProfileEditor('id1', patch, { activate: false })
     await api.resetProfileEditorOverlay('id1')
     expect(get).toHaveBeenCalledWith('profiles/id1/editor')
     expect(post).toHaveBeenCalledWith('profiles/id1/editor/preview', {
@@ -215,6 +216,10 @@ describe('composables/useControlApi methods', () => {
     })
     expect(put).toHaveBeenCalledWith('profiles/id1/editor', {
       json: { patch },
+      timeout: 360_000,
+    })
+    expect(put).toHaveBeenCalledWith('profiles/id1/editor', {
+      json: { patch, activate: false },
       timeout: 360_000,
     })
     expect(del).toHaveBeenCalledWith('profiles/id1/editor/overlay', {

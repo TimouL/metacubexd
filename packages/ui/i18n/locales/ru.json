@@ -584,8 +584,8 @@
   "visualEditorAddField": "Добавить поле",
   "visualEditorPreview": "Проверить изменения",
   "visualEditorPreviewFailed": "Не удалось подготовить предпросмотр",
-  "visualEditorApply": "Проверить и применить",
-  "visualEditorActivate": "Проверить и активировать",
+  "visualEditorApply": "Проверить и сохранить",
+  "visualEditorActivate": "Проверить и сохранить",
   "visualEditorApplied": "Конфигурация применена",
   "visualEditorApplyFailed": "Не удалось применить конфигурацию",
   "visualEditorLeaveConfirm": "Отменить несохранённые изменения?",
@@ -618,5 +618,8 @@
   "tooltipProfilesDelete": "Удалить этот профиль",
   "tooltipProfilesSave": "Сохранить содержимое профиля",
   "tooltipProfilesValidate": "Сохранить и проверить профиль",
-  "tooltipProfilesCancel": "Закрыть редактор"
+  "tooltipProfilesCancel": "Закрыть редактор",
+  "visualEditorSaved": "Конфигурация сохранена",
+  "tooltipAddProxy": "Добавить прокси",
+  "tooltipAddProvider": "Добавить поставщика подписки"
 }

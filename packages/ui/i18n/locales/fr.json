@@ -640,8 +640,8 @@
   "visualEditorAddField": "Ajouter un champ",
   "visualEditorPreview": "Vérifier les modifications",
   "visualEditorPreviewFailed": "Impossible de préparer l’aperçu",
-  "visualEditorApply": "Valider et appliquer",
-  "visualEditorActivate": "Valider et activer",
+  "visualEditorApply": "Valider et enregistrer",
+  "visualEditorActivate": "Valider et enregistrer",
   "visualEditorApplied": "Configuration appliquée",
   "visualEditorApplyFailed": "Échec de l’application de la configuration",
   "visualEditorLeaveConfirm": "Ignorer les modifications non enregistrées ?",
@@ -674,5 +674,8 @@
   "tooltipProfilesDelete": "Supprimer ce profil",
   "tooltipProfilesSave": "Enregistrer le contenu du profil",
   "tooltipProfilesValidate": "Enregistrer et valider le profil",
-  "tooltipProfilesCancel": "Fermer l'éditeur"
+  "tooltipProfilesCancel": "Fermer l'éditeur",
+  "visualEditorSaved": "Configuration enregistrée",
+  "tooltipAddProxy": "Ajouter un proxy",
+  "tooltipAddProvider": "Ajouter un fournisseur d’abonnement"
 }

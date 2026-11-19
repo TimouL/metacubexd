@@ -169,10 +169,19 @@ export function useControlApi() {
       client
         .post(`profiles/${id}/editor/preview`, { json: { patch } })
         .json<ProfileEditorPreview>(),
-    applyProfileEditor: (id: string, patch: ConfigPatchV1) =>
+    applyProfileEditor: (
+      id: string,
+      patch: ConfigPatchV1,
+      options?: { activate?: boolean },
+    ) =>
       client
         .put(`profiles/${id}/editor`, {
-          json: { patch },
+          json: {
+            patch,
+            ...(options?.activate === undefined
+              ? {}
+              : { activate: options.activate }),
+          },
           timeout: PROFILE_ACTIVATE_TIMEOUT,
         })
         .json<{

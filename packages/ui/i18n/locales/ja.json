@@ -640,8 +640,8 @@
   "visualEditorAddField": "フィールドを追加",
   "visualEditorPreview": "変更を確認",
   "visualEditorPreviewFailed": "プレビューを作成できませんでした",
-  "visualEditorApply": "検証して適用",
-  "visualEditorActivate": "検証して有効化",
+  "visualEditorApply": "検証して保存",
+  "visualEditorActivate": "検証して保存",
   "visualEditorApplied": "設定を適用しました",
   "visualEditorApplyFailed": "設定の適用に失敗しました",
   "visualEditorLeaveConfirm": "未保存の変更を破棄しますか？",
@@ -674,5 +674,8 @@
   "tooltipProfilesDelete": "このプロファイルを削除",
   "tooltipProfilesSave": "プロファイル内容を保存",
   "tooltipProfilesValidate": "プロファイルを保存して検証",
-  "tooltipProfilesCancel": "エディターを閉じる"
+  "tooltipProfilesCancel": "エディターを閉じる",
+  "visualEditorSaved": "設定を保存しました",
+  "tooltipAddProxy": "プロキシを追加",
+  "tooltipAddProvider": "サブスクリプションプロバイダーを追加"
 }

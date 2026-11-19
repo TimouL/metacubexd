@@ -380,8 +380,13 @@ export function createControlRouter(deps: ControlRouterDeps): App {
 
   // ---- Visual profile editor (Agent only) ----
   if (profileEditor) {
-    const readEditorPatch = async (event: H3Event): Promise<ConfigPatchV1> => {
-      const body = (await readBody(event)) as { patch?: unknown } | null
+    const readEditorPatch = async (
+      event: H3Event,
+    ): Promise<{ patch: ConfigPatchV1; activate?: boolean }> => {
+      const body = (await readBody(event)) as {
+        patch?: unknown
+        activate?: unknown
+      } | null
       const patch = body?.patch
       try {
         assertConfigPatch(patch)
@@ -392,7 +397,12 @@ export function createControlRouter(deps: ControlRouterDeps): App {
           statusMessage: 'invalid visual editor patch',
         })
       }
-      return patch
+      return {
+        patch,
+        ...(typeof body?.activate === 'boolean'
+          ? { activate: body.activate }
+          : {}),
+      }
     }
     const withEditorError = async <T>(action: () => Promise<T>): Promise<T> => {
       try {
@@ -437,7 +447,7 @@ export function createControlRouter(deps: ControlRouterDeps): App {
       `${PREFIX}/profiles/:id/editor/preview`,
       defineEventHandler(async (event) => {
         const id = getRouterParam(event, 'id')!
-        const patch = await readEditorPatch(event)
+        const { patch } = await readEditorPatch(event)
         return withEditorError(() => profileEditor.preview(id, patch))
       }),
     )
@@ -445,8 +455,12 @@ export function createControlRouter(deps: ControlRouterDeps): App {
       `${PREFIX}/profiles/:id/editor`,
       defineEventHandler(async (event) => {
         const id = getRouterParam(event, 'id')!
-        const patch = await readEditorPatch(event)
-        return withEditorError(() => profileEditor.apply(id, patch))
+        const { patch, activate } = await readEditorPatch(event)
+        return withEditorError(() =>
+          activate === undefined
+            ? profileEditor.apply(id, patch)
+            : profileEditor.apply(id, patch, { activate }),
+        )
       }),
     )
     router.delete(

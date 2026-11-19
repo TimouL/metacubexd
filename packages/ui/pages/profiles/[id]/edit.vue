@@ -161,9 +161,6 @@ const diagnostics = computed(() => documentState.value?.diagnostics ?? [])
 const hasDocumentErrors = computed(() =>
   diagnostics.value.some((diagnostic) => diagnostic.severity === 'error'),
 )
-const activeApplyLabel = computed(() =>
-  snapshot.value?.active ? t('visualEditorApply') : t('visualEditorActivate'),
-)
 const sectionSchema = computed(() => configSectionSchema(editingSection.value))
 const commonResourceFields = computed(() => {
   if (resourceKind.value === 'group') return ['name', 'type', 'url', 'interval']
@@ -551,9 +548,10 @@ async function showPreview() {
 async function applyChanges() {
   applying.value = true
   try {
-    await api.applyProfileEditor(profileId.value, currentPatch())
-    await kernelStore.fetchStatus().catch(() => {})
-    toast.success(t('visualEditorApplied'))
+    await api.applyProfileEditor(profileId.value, currentPatch(), {
+      activate: false,
+    })
+    toast.success(t('visualEditorSaved'))
     await loadEditor()
   } catch (error) {
     toast.error(t('visualEditorApplyFailed'), {
@@ -722,7 +720,7 @@ if (import.meta.client) {
             :disabled="!dirty || Boolean(yamlError) || hasDocumentErrors"
             @click="applyChanges"
           >
-            {{ activeApplyLabel }}
+            {{ t('visualEditorApply') }}
           </Button>
         </div>
       </header>
@@ -803,12 +801,14 @@ if (import.meta.client) {
               <Button
                 class="btn-ghost btn-xs"
                 :icon="IconPlus"
+                :title="t('tooltipAddProxy')"
                 @click="addResource('proxy')"
                 >{{ t('visualEditorProxy') }}</Button
               >
               <Button
                 class="btn-ghost btn-xs"
                 :icon="IconPlus"
+                :title="t('tooltipAddProvider')"
                 @click="addResource('provider')"
                 >{{ t('proxyProviders') }}</Button
               >
@@ -1267,7 +1267,7 @@ if (import.meta.client) {
             )
           "
           @click="applyChanges"
-          >{{ activeApplyLabel }}</Button
+          >{{ t('visualEditorApply') }}</Button
         >
       </template>
     </Modal>

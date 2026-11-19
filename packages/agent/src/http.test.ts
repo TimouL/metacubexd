@@ -543,7 +543,7 @@ describe('createControlRouter — profiles + SSE', () => {
         ...snapshot,
         patch: { version: 1 as const, baseRevision: 'rev', operations: [] },
       })),
-      apply: vi.fn(async () => ({
+      apply: vi.fn(async (..._args: unknown[]) => ({
         profile: snapshot.profile,
         activeId: 'p1',
         revision: 'rev',
@@ -574,6 +574,17 @@ describe('createControlRouter — profiles + SSE', () => {
         body: JSON.stringify(body),
       }).then((r) => r.status),
     ).toBe(200)
+    expect(profileEditor.apply.mock.calls[0]?.[2]).toBeUndefined()
+    expect(
+      await fetch(`${srv.base}/api/control/profiles/p1/editor`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...body, activate: false }),
+      }).then((r) => r.status),
+    ).toBe(200)
+    expect(profileEditor.apply.mock.calls[1]?.[2]).toEqual({
+      activate: false,
+    })
     expect(
       await fetch(`${srv.base}/api/control/profiles/p1/editor/overlay`, {
         method: 'DELETE',

@@ -9,13 +9,13 @@ import type {
   ProfileMeta,
   ProfileStore,
 } from './types'
+import { rm, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import {
   applyPatch,
   diffDocument,
   openDocument,
 } from '@metacubexd/config-editor'
-import { rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import {
   ConfigPatchConflictError,
   parseVisualPatch,
@@ -49,7 +49,11 @@ export interface ProfileEditorApplyResult {
 export interface ProfileConfigEditor {
   open: (id: string) => Promise<ProfileEditorSnapshot>
   preview: (id: string, patch: ConfigPatchV1) => Promise<ProfileEditorPreview>
-  apply: (id: string, patch: ConfigPatchV1) => Promise<ProfileEditorApplyResult>
+  apply: (
+    id: string,
+    patch: ConfigPatchV1,
+    options?: { activate?: boolean },
+  ) => Promise<ProfileEditorApplyResult>
   resetManagedOverlay: (id: string) => Promise<KernelState | undefined>
 }
 
@@ -214,6 +218,7 @@ export function createProfileConfigEditor(
   async function apply(
     id: string,
     patch: ConfigPatchV1,
+    options: { activate?: boolean } = {},
   ): Promise<ProfileEditorApplyResult> {
     const before = await editableState(id)
     const result = await preview(id, patch)
@@ -269,12 +274,16 @@ export function createProfileConfigEditor(
         await profiles.update(id, { content: result.editableYaml })
       }
 
-      await profiles.setActive(id)
-      const kernel = await supervisor.restart()
+      let kernel = await supervisor.getState()
+      if (options.activate !== false) {
+        await profiles.setActive(id)
+        kernel = await supervisor.restart()
+      }
       const profile = await findProfile(id)
+      const activeId = await profiles.getActiveId()
       return {
         profile,
-        activeId: id,
+        activeId: activeId ?? previousActiveId ?? '',
         revision: result.revision,
         kernel,
       }
