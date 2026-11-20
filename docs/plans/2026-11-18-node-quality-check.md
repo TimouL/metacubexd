@@ -11,8 +11,8 @@
 ## Confirmed requirements (user)
 
 - Tool: NekoSpeed; one pass for AI unlock + streaming + speed + landing region.
-- Funnel (one node → at most one class): dead→drop; **AI pass (OpenAI AND YouTube both pass¹)** → ai; remaining **streaming pass (Netflix/YouTube/Disney+/Bilibili any)** → streaming; remaining **speed ≥1 MiB/s²** → download; below → drop.
-  - ¹ user said "GPT YouTube 能过就行" — interpreted as **both OpenAI and YouTube must pass** for the AI class. Flagged for final user confirmation (ambiguous phrasing).
+- Funnel (one node → at most one class): dead→drop; **AI pass (OpenAI/GPT `unlock`)** → ai; remaining **streaming pass (YouTube `unlock`)** → streaming; remaining **speed ≥1 MiB/s²** → download; below → drop.
+  - ¹ user confirmed: AI class uses **OpenAI/GPT pass only** (YouTube does NOT participate in AI judgement); streaming class uses **YouTube pass only** (NOT the any-streaming-platform rule).
   - ² bytes/sec ÷ 1024² = MiB/s; use **average download speed**.
 - Rename `{tag}_{landing-region}_{capability|tier}_{index}`: `free组_美国_流媒体_1`, `free组_美国_3m_1`; tiers 1m/3m/5m/10m (round down); region by landing IP, Chinese names (美国/香港/日本/新加坡/其他).
 - Re-check overwrites exported sets with **stable provider identity**.
@@ -42,7 +42,7 @@
      - all `na` or all missing → **unknown** (discard, log, never enter a pass class).
   6. fallback when the report lacks a timeout-vs-rejection distinction: `reqfailed` with no positive measurement → **dead** (rule 5); no special-case needed.
   - Capability status: `unlock` = pass; `reqfailed`/`na`/missing = not pass (`na` = not applicable ≠ pass); `pending` = unknown (never passes, never overrides another platform's pass).
-  - Mixed platforms: streaming pass = **any** of Netflix/YouTube/Disney+/Bilibili `unlock` (Netflix `pending` + YouTube `unlock` → streaming pass). AI pass = OpenAI `unlock` AND YouTube `unlock` (strict rule, flagged for user confirmation).
+  - Mixed platforms: **AI pass = OpenAI/GPT `unlock` only** (YouTube not involved). **Streaming pass = YouTube `unlock` only** (Netflix/Disney+/Bilibili not used for classification). `pending` on either = unknown → node does not enter that class but is still eligible for download if speed≥1 MiB/s.
   - Outcome table: all-zero→unknown/discard; all-reqfailed→dead/discard; na-with-speed→alive→download; missing-field→unknown on that dimension but alive if any positive measurement; fatal-error→dead; pending-capability-with-good-speed→alive, download set only, never ai/streaming.
 - **Provider reload:** repository uses **PUT** `/providers/proxies/{name}` (NOT PATCH). Spike MUST: load generation A, publish generation B via symlink, PUT-reload the existing provider, verify its group sees added AND removed nodes — including an empty set. Initial load alone does not prove re-export, the core requirement.
 
@@ -80,7 +80,10 @@
 - Auth endpoints; bounds; SSRF policy; argument-array spawn; private temp files; redact secrets; capability gate; localized errors/progress/unknown states.
 - Tests: malformed/missing JSON, all statuses incl. unknown, unit boundaries, duplicate names, protocol-field preservation, partial failures, cancel/restart, concurrent export, deleted exports, transport redirects/HTML, **actual provider-consumption integration**, exported protocol compatibility with running mihomo, binary/license distribution.
 
+## Resolved (confirmed by user, 2026-11-20)
+
+- AI rule = OpenAI/GPT pass only; streaming rule = YouTube pass only. No ambiguity remains.
+
 ## Open for user (not blocking spike)
 
-- Confirm strict AI rule (OpenAI AND YouTube) — flagged ambiguity.
 - GitHub proxy presets — configurable list adopted.
