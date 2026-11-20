@@ -1,6 +1,6 @@
-# Subscription Quality Check & Node Classification — Implementation Plan (v3.2, finalized)
+# Subscription Quality Check & Node Classification — Implementation Plan (v3.3, finalized)
 
-> **Status:** v3.2 finalized — incorporates multiple rounds of Codex (auto/gpt-6-astra) review. NOT executed — awaiting user confirmation to start Phase 0 spike.
+> **Status:** v3.3 finalized — incorporates multiple rounds of Codex (auto/gpt-6-astra) review incl. its confirmed decision matrix. NOT executed — awaiting user confirmation to start Phase 0 spike.
 
 **Goal:** Panel-driven: bulk-add/tag subscriptions → one-pass NekoSpeed quality/speed/landing-region check → funnel classification (AI → streaming → download) → export each class as a **mihomo-consumable proxy-provider file** for fallback / download groups.
 
@@ -28,22 +28,39 @@
 4. **Transport contract:** shared `acquire(url, transport)` used by import/refresh/detection. Bulk import has no subscription ID yet → accept **URL-level transport argument** (default: direct; user may pick github-proxy at import time), persist after creation. GitHub proxy: use **stable proxy IDs** (not index); define global-enable / selected-prefix / failover-order interaction; **direct fallback is explicitly configurable and OFF by default** (mirror failure never silently overrides routing intent). Validate fetched content is a subscription (not HTML error), preserve original source URL, redact tokens in logs, restrict eligible hosts, validate redirects, SSRF policy.
 5. **Atomic publication contract:** write three YAMLs to `/data/node-sets/.staging/<generation>/`, fsync, then **atomically flip one symlink** `current → .staging/<generation>`; config records current generation. Crash recovery: detect incomplete staging, roll back to last good generation. Independent of what an already-loaded mihomo provider has cached — document that a provider reload is needed to see re-export.
 
-## Precision rules (v3.2 — finalized, deterministic)
+## Precision rules (v3.3 — finalized, Astra-confirmed decision matrix)
 
 - **Per-subscription replacement:** rechecking subscription A replaces ONLY A's contribution to the three aggregate sets. Unchecked B's contribution remains. Failed recheck of A retains A's prior contribution. Successful-but-empty A clears A's contribution. Persist per-subscription classified slices (`subscriptionId → {tempName → {class, renamedNode}}`) in config; rebuild all three aggregate sets from these slices at every export.
-- **Deterministic alive/dead/unknown predicate** (field-VALUE based; no "if available"; evaluated per node in this priority order):
-  1. fatal/error field non-empty (e.g. dial failure) → **dead**.
-  2. any platform status == `unlock` → **alive** (a successful probe proves reachability).
-  3. measured speed (bytes/s) > 0 → **alive**.
-  4. measured latency > 0 → **alive**.
-  5. all platform statuses ∈ {`reqfailed`,`na`,`pending`,missing} AND speed==0 AND latency==0:
-     - all `reqfailed` → **dead**;
-     - any `na` with at least one other platform measured → **alive**;
-     - all `na` or all missing → **unknown** (discard, log, never enter a pass class).
-  6. fallback when the report lacks a timeout-vs-rejection distinction: `reqfailed` with no positive measurement → **dead** (rule 5); no special-case needed.
-  - Capability status: `unlock` = pass; `reqfailed`/`na`/missing = not pass (`na` = not applicable ≠ pass); `pending` = unknown (never passes, never overrides another platform's pass).
-  - Mixed platforms: **AI pass = OpenAI/GPT `unlock` only** (YouTube not involved). **Streaming pass = YouTube `unlock` only** (Netflix/Disney+/Bilibili not used for classification). `pending` on either = unknown → node does not enter that class but is still eligible for download if speed≥1 MiB/s.
-  - Outcome table: all-zero→unknown/discard; all-reqfailed→dead/discard; na-with-speed→alive→download; missing-field→unknown on that dimension but alive if any positive measurement; fatal-error→dead; pending-capability-with-good-speed→alive, download set only, never ai/streaming.
+- **Funnel evaluation order (runs ONLY on alive nodes — first match wins):** (1) OpenAI `unlock` → **AI**; (2) else YouTube `unlock` → **Streaming**; (3) else speed ≥ 1,048,576 bytes/s (1 MiB/s) → **Download**; (4) else → **discard**. `pending`/`reqfailed`/`na`/missing on one capability NEVER blocks evaluation of the next: e.g. OpenAI `pending` + YouTube `unlock` → Streaming; OpenAI `unlock` + YouTube `pending` → AI. Netflix/Disney+/Bilibili `unlock` is NEVER a qualification signal (YouTube only).
+- **Liveness predicate (deterministic, field-VALUE based; evaluate in this EXACT priority — liveness is decided BEFORE class, and the funnel below runs ONLY on alive nodes):**
+  1. fatal/error field non-empty → **dead** (overrides everything, incl. `unlock` — row 17).
+  2. any capability `unlock` OR positive measurement (speed>0 OR latency>0) → **alive** (this WINS over `reqfailed` — rows 2/3 `unlock`+`reqfailed`@0, row 11 `reqfailed`+`reqfailed`@1,048,576).
+  3. else all capabilities `missing` with zero measurement → **unknown** (row 16).
+  4. else any capability `reqfailed` with zero measurement (no positive evidence) → **dead** (row 15 `na`+`reqfailed`@0).
+  5. catch-all (e.g. `pending`/`failed`/`senttocn`/`na` with zero measurement, rows 5/8) → **alive** (inconclusive; never auto-dead).
+  - A dead or unknown node is discarded and never enters a class. This ordering is the single source of truth; the decision matrix below is its exhaustive test vector.
+- **Astra-confirmed decision matrix** (columns: OpenAI status | YouTube status | speed bytes/s | other | outcome). Implement and test EXACTLY these:
+  | OpenAI      | YouTube     | speed     | other                         | outcome                                 |
+  | ----------- | ----------- | --------- | ----------------------------- | --------------------------------------- |
+  | `pending`   | `unlock`    | 1,048,576 | —                             | Streaming                               |
+  | `unlock`    | `reqfailed` | 0         | —                             | AI                                      |
+  | `reqfailed` | `unlock`    | 0         | —                             | Streaming                               |
+  | `pending`   | `pending`   | 1,048,576 | —                             | Download                                |
+  | `pending`   | `pending`   | 0         | —                             | discard; alive                          |
+  | `missing`   | `missing`   | 0         | Netflix `unlock`              | discard; alive (Netflix not qualifying) |
+  | `missing`   | `missing`   | 1,048,576 | Netflix `unlock`              | Download                                |
+  | `failed`    | `senttocn`  | 0         | —                             | discard; alive                          |
+  | `failed`    | `senttocn`  | 1,048,576 | —                             | Download                                |
+  | `na`        | `na`        | 1,048,576 | —                             | Download                                |
+  | `reqfailed` | `reqfailed` | 1,048,576 | —                             | Download; positive speed proves alive   |
+  | `missing`   | `missing`   | 1,048,575 | —                             | discard; below threshold (strict ≥)     |
+  | `missing`   | `missing`   | 1,048,576 | —                             | Download                                |
+  | `missing`   | `missing`   | missing   | positive average latency only | discard; alive                          |
+  | `na`        | `reqfailed` | 0         | —                             | discard; dead                           |
+  | `missing`   | `missing`   | 0         | —                             | discard; unknown                        |
+  | `unlock`    | `unlock`    | 1,048,576 | non-empty fatal error         | discard; dead (fatal overrides)         |
+  - Apply the Netflix-only cases identically to Disney+/Bilibili/other nonqualifying platforms.
+  - Unlisted combinations: follow the five liveness steps above (which already cover fatal, all-missing+zero, reqfailed+zero, and the inconclusive catch-all), then apply the funnel to alive nodes. Log any such case for later refinement; do not override the liveness result.
 - **Provider reload:** repository uses **PUT** `/providers/proxies/{name}` (NOT PATCH). Spike MUST: load generation A, publish generation B via symlink, PUT-reload the existing provider, verify its group sees added AND removed nodes — including an empty set. Initial load alone does not prove re-export, the core requirement.
 
 ## Phase 0 — Feasibility spike (gated, before any product code)
@@ -78,7 +95,7 @@
 ## Security / robustness
 
 - Auth endpoints; bounds; SSRF policy; argument-array spawn; private temp files; redact secrets; capability gate; localized errors/progress/unknown states.
-- Tests: malformed/missing JSON, all statuses incl. unknown, unit boundaries, duplicate names, protocol-field preservation, partial failures, cancel/restart, concurrent export, deleted exports, transport redirects/HTML, **actual provider-consumption integration**, exported protocol compatibility with running mihomo, binary/license distribution.
+- Tests: malformed/missing JSON, all statuses incl. unknown, unit boundaries (1,048,575 vs 1,048,576 bytes/s), duplicate names, protocol-field preservation, partial failures, cancel/restart, concurrent export, deleted exports, transport redirects/HTML, **actual provider-consumption integration**, exported protocol compatibility with running mihomo, binary/license distribution. Capability classification MUST test: OpenAI-only→AI; YouTube-only→Streaming; both unlock with no fatal error→AI (priority); fatal error with any `unlock`→dead (overrides funnel, matrix row 17); Netflix-only/Disney-only/Bilibili-only→neither capability class; OpenAI `pending`+YouTube `unlock`→Streaming; OpenAI `unlock`+YouTube `pending`→AI; and every row of the Astra decision matrix above.
 
 ## Resolved (confirmed by user, 2026-11-20)
 
