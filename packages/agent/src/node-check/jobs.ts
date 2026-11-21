@@ -58,6 +58,7 @@ export interface JobManagerOptions {
 
 export interface JobRequest {
   frozenYamlContent?: string
+  subscriptionByTempName?: Record<string, string>
   subscriptionIds: string[]
   fingerprint?: string
   tag?: string
@@ -91,6 +92,7 @@ export interface JobStatus {
 export interface StoredResult {
   request: NormalizedRequest
   result: DetectionResult
+  subscriptionByTempName?: Record<string, string>
   createdAt: number
 }
 
@@ -116,6 +118,7 @@ export type ApplyFn = (
 
 export interface NormalizedRequest {
   frozenYamlContent?: string
+  subscriptionByTempName?: Record<string, string>
   subscriptionIds: string[]
   fingerprint?: string
   tag?: string
@@ -154,6 +157,16 @@ function cleanStringArray(value: unknown): string[] {
   )
 }
 
+function cleanStringRecord(value: unknown): Record<string, string> | undefined {
+  if (!isPlainObject(value)) return undefined
+  const result: Record<string, string> = {}
+  for (const [key, entry] of Object.entries(value)) {
+    if (typeof entry !== 'string') return undefined
+    result[key] = entry
+  }
+  return result
+}
+
 function clampProgress(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0
   return Math.min(100, Math.max(0, Math.round(value)))
@@ -162,8 +175,10 @@ function clampProgress(value: unknown): number {
 function normalizeRequest(value: unknown): NormalizedRequest | undefined {
   if (!isPlainObject(value)) return undefined
   const frozenYamlContent = value.frozenYamlContent
+  const subscriptionByTempName = cleanStringRecord(value.subscriptionByTempName)
   return {
     ...(typeof frozenYamlContent === 'string' ? { frozenYamlContent } : {}),
+    ...(subscriptionByTempName ? { subscriptionByTempName } : {}),
     subscriptionIds: cleanStringArray(value.subscriptionIds),
     ...(cleanString(value.fingerprint)
       ? { fingerprint: cleanString(value.fingerprint) }
@@ -234,6 +249,9 @@ function normalizeResult(value: unknown): StoredResult | undefined {
   return {
     request,
     result: value.result as unknown as DetectionResult,
+    ...(request.subscriptionByTempName
+      ? { subscriptionByTempName: request.subscriptionByTempName }
+      : {}),
     createdAt,
   }
 }
@@ -627,6 +645,12 @@ function createJobManager(opts: JobManagerOptions) {
       }
       const entry = results.get(id)
       if (!entry) throw new Error(`Job ${id} expired`)
+      if (entry.subscriptionByTempName) {
+        entry.result.subscriptionByTempName = entry.subscriptionByTempName
+      }
+      if (entry.request.subscriptionIds.length > 0) {
+        entry.result.subscriptionIds = entry.request.subscriptionIds
+      }
       let current: string | undefined
       try {
         current = fingerprintConfig(await loadConfig())

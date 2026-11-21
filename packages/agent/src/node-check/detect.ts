@@ -77,12 +77,19 @@ export interface FrozenInput {
   content: string
   tempNames: string[]
   proxiesByTempName: Map<string, Record<string, unknown>>
+  subscriptionByTempName?: Map<string, string>
+}
+
+export interface FrozenInputOptions {
+  subscriptionId?: string
 }
 
 export interface DetectionResult {
   nodes: ClassifiedNode[]
   classes: Record<NodeCheckClass, ClassifiedNode[]>
   yaml: Record<NodeCheckClass, string>
+  subscriptionIds?: string[]
+  subscriptionByTempName?: Record<string, string>
 }
 
 export type SpawnLike = (
@@ -254,16 +261,23 @@ export function classNameify(node: DetectionNode): {
   return { class: 'discard', aliveness }
 }
 
-export function buildFrozenInput(proxies: readonly unknown[]): FrozenInput {
+export function buildFrozenInput(
+  proxies: readonly unknown[],
+  opts: FrozenInputOptions = {},
+): FrozenInput {
   const normalized = proxies.map((proxy) => {
     if (!isPlainObject(proxy))
       throw new Error('Invalid proxy: expected an object')
     return structuredClone(proxy)
   })
   const proxiesByTempName = new Map<string, PlainObject>()
+  const subscriptionByTempName = new Map<string, string>()
   const renamed = normalized.map((proxy, index) => {
     const tempName = `__nc_${index + 1}`
     proxiesByTempName.set(tempName, proxy)
+    if (opts.subscriptionId) {
+      subscriptionByTempName.set(tempName, opts.subscriptionId)
+    }
     return { ...proxy, name: tempName }
   })
   const content = stringify({ proxies: renamed }, { lineWidth: 0 })
@@ -271,6 +285,7 @@ export function buildFrozenInput(proxies: readonly unknown[]): FrozenInput {
     content,
     tempNames: [...proxiesByTempName.keys()],
     proxiesByTempName,
+    ...(subscriptionByTempName.size > 0 ? { subscriptionByTempName } : {}),
   }
 }
 
@@ -509,6 +524,13 @@ export async function runDetection(
           classes.download.flatMap((node) => (node.proxy ? [node.proxy] : [])),
         ),
       },
+      ...(frozenInput.subscriptionByTempName
+        ? {
+            subscriptionByTempName: Object.fromEntries(
+              frozenInput.subscriptionByTempName,
+            ),
+          }
+        : {}),
     }
   } finally {
     if (owned) {

@@ -1,5 +1,12 @@
 import type { ConfigPatchV1 } from '@metacubexd/config-editor'
 import type { App, H3Event } from 'h3'
+import type {
+  NodeCheckConfig,
+  NodeCheckConfigStore,
+  RefreshTransport,
+} from './node-check/config'
+import type { DetectionResult } from './node-check/detect'
+import type { ClassifiedSlices } from './node-check/export'
 import type { ProfileConfigEditor } from './profile-editor'
 import type {
   KernelLogLine,
@@ -10,6 +17,7 @@ import type {
   SystemProxyController,
   TunController,
 } from './types'
+import { Buffer } from 'node:buffer'
 import { readFile as defaultReadFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
@@ -30,8 +38,14 @@ import {
   setResponseHeader,
   setResponseStatus,
 } from 'h3'
+import { parse as parseYaml } from 'yaml'
 import { fetchGeoAssets } from './kernel/geo'
 import { ConfigPatchConflictError } from './merge'
+import {
+  NODE_CHECK_CLASSES,
+  normalizeNodeCheckConfig,
+} from './node-check/config'
+import { buildFrozenInput } from './node-check/detect'
 import {
   ProfileEditorConflictError,
   ProfileEditorValidationError,
@@ -41,6 +55,37 @@ import { TunPreconditionError } from './tun'
 import { createWebdavClient as defaultCreateWebdavClient } from './webdav'
 
 const BACKUP_FILENAME = 'metacubexd-backup.json'
+const NODE_CHECK_MAX_SUBSCRIPTIONS = 50
+const NODE_CHECK_MAX_ID_LENGTH = 128
+const NODE_CHECK_MAX_TAG_LENGTH = 256
+const NODE_CHECK_MAX_SPEED_TIERS = 16
+const NODE_CHECK_MAX_CONFIG_PATCH_BYTES = 64 * 1024
+const NODE_CHECK_ID_PATTERN = /^[A-Z0-9][\w.-]*$/i
+
+export interface NodeCheckRouterDeps {
+  configStore: NodeCheckConfigStore
+  acquire: (
+    url: string,
+    transport: RefreshTransport,
+  ) => Promise<{ content: string; finalUrl?: string }>
+  jobManager: {
+    start: (request: {
+      subscriptionIds: string[]
+      frozenYamlContent: string
+      subscriptionByTempName?: Record<string, string>
+      fingerprint?: string
+      tag?: string
+    }) => Promise<string>
+    getStatus: (id: string) => Promise<unknown>
+    apply: (
+      jobId: string,
+    ) => Promise<DetectionResult | undefined> | DetectionResult | undefined
+  }
+  exportNodeSets: (
+    store: NodeCheckConfigStore,
+    slices: ClassifiedSlices,
+  ) => Promise<unknown>
+}
 
 async function withSubscriptionHttpError<T>(
   action: () => Promise<T>,
@@ -81,6 +126,7 @@ export interface ControlRouterDeps {
   geoFetch?: typeof fetch // override for tests; defaults to global fetch
   createWebdavClient?: typeof defaultCreateWebdavClient // override for tests
   readFile?: typeof defaultReadFile // override for tests; defaults to fs/promises readFile
+  nodeCheck?: NodeCheckRouterDeps // node-quality-check; capability-gated
 }
 
 const PREFIX = '/api/control'
@@ -102,7 +148,186 @@ export function createControlRouter(deps: ControlRouterDeps): App {
     geoFetch,
     createWebdavClient = defaultCreateWebdavClient,
     readFile = defaultReadFile,
+    nodeCheck,
   } = deps
+
+  function badRequest(
+    event: H3Event,
+    error: string,
+    statusCode = 400,
+  ): { error: string } {
+    setResponseStatus(event, statusCode)
+    return { error }
+  }
+
+  function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+  }
+
+  function parseNodeCheckProxies(content: string): Record<string, unknown>[] {
+    if (content.length > NODE_CHECK_MAX_CONFIG_PATCH_BYTES * 8) {
+      throw new Error('Subscription content is too large')
+    }
+    const document = parseYaml(content) as unknown
+    if (!isPlainObject(document) || !Array.isArray(document.proxies)) {
+      throw new Error('Subscription content has no proxies array')
+    }
+    const proxies = document.proxies
+    if (
+      proxies.length === 0 ||
+      proxies.length > NODE_CHECK_MAX_SUBSCRIPTIONS * 20
+    ) {
+      throw new Error('Subscription node count is out of range')
+    }
+    if (proxies.some((proxy) => !isPlainObject(proxy))) {
+      throw new Error('Subscription contains an invalid proxy')
+    }
+    return proxies as Record<string, unknown>[]
+  }
+
+  function validNodeCheckId(value: unknown): value is string {
+    return (
+      typeof value === 'string' &&
+      value.length > 0 &&
+      value.length <= NODE_CHECK_MAX_ID_LENGTH &&
+      NODE_CHECK_ID_PATTERN.test(value)
+    )
+  }
+
+  function validNodeCheckPatch(
+    value: unknown,
+  ): value is Partial<NodeCheckConfig> {
+    if (!isPlainObject(value)) return false
+    const allowed = new Set([
+      'schemaVersion',
+      'tags',
+      'refreshTransport',
+      'githubProxies',
+      'generalProxy',
+      'settings',
+    ])
+    if (Object.keys(value).some((key) => !allowed.has(key))) return false
+    const schemaVersion = value.schemaVersion
+    if (
+      schemaVersion !== undefined &&
+      (typeof schemaVersion !== 'number' ||
+        !Number.isSafeInteger(schemaVersion) ||
+        schemaVersion < 1)
+    ) {
+      return false
+    }
+    if (value.tags !== undefined) {
+      if (!isPlainObject(value.tags)) return false
+      for (const [id, tag] of Object.entries(value.tags)) {
+        if (
+          !validNodeCheckId(id) ||
+          typeof tag !== 'string' ||
+          tag.length > NODE_CHECK_MAX_TAG_LENGTH
+        ) {
+          return false
+        }
+      }
+    }
+    if (value.refreshTransport !== undefined) {
+      if (!isPlainObject(value.refreshTransport)) return false
+      for (const [id, transport] of Object.entries(value.refreshTransport)) {
+        if (!validNodeCheckId(id) || !isPlainObject(transport)) return false
+        if (
+          !['direct', 'generalProxy', 'githubProxy'].includes(
+            String(transport.mode),
+          )
+        ) {
+          return false
+        }
+        if (
+          transport.proxyId !== undefined &&
+          !validNodeCheckId(transport.proxyId)
+        ) {
+          return false
+        }
+      }
+    }
+    if (value.githubProxies !== undefined) {
+      if (
+        !Array.isArray(value.githubProxies) ||
+        value.githubProxies.length > NODE_CHECK_MAX_SUBSCRIPTIONS
+      ) {
+        return false
+      }
+      for (const proxy of value.githubProxies) {
+        if (
+          !isPlainObject(proxy) ||
+          !validNodeCheckId(proxy.id) ||
+          typeof proxy.prefix !== 'string' ||
+          proxy.prefix.length > 2048 ||
+          typeof proxy.enabled !== 'boolean'
+        ) {
+          return false
+        }
+      }
+    }
+    if (
+      value.generalProxy !== undefined &&
+      (typeof value.generalProxy !== 'string' ||
+        value.generalProxy.length > 2048)
+    ) {
+      return false
+    }
+    if (value.settings !== undefined) {
+      if (!isPlainObject(value.settings)) return false
+      const settings = value.settings
+      if (
+        settings.minSpeedBytes !== undefined &&
+        (!Number.isSafeInteger(settings.minSpeedBytes) ||
+          (settings.minSpeedBytes as number) < 0)
+      ) {
+        return false
+      }
+      if (settings.speedTiers !== undefined) {
+        if (
+          !Array.isArray(settings.speedTiers) ||
+          settings.speedTiers.length > NODE_CHECK_MAX_SPEED_TIERS ||
+          settings.speedTiers.some(
+            (tier) => !Number.isSafeInteger(tier) || (tier as number) < 0,
+          )
+        ) {
+          return false
+        }
+      }
+      if (settings.regionNames !== undefined) {
+        if (!isPlainObject(settings.regionNames)) return false
+        for (const [name, label] of Object.entries(settings.regionNames)) {
+          if (
+            name.length > NODE_CHECK_MAX_TAG_LENGTH ||
+            typeof label !== 'string' ||
+            label.length > NODE_CHECK_MAX_TAG_LENGTH
+          ) {
+            return false
+          }
+        }
+      }
+    }
+    return true
+  }
+
+  function slicesFromResult(result: DetectionResult): ClassifiedSlices {
+    const slices: ClassifiedSlices = {}
+    for (const node of result.nodes) {
+      if (node.class === 'discard' || !node.proxy) continue
+      const subscriptionId =
+        result.subscriptionByTempName?.[node.name] ??
+        (result.subscriptionIds?.length === 1
+          ? result.subscriptionIds[0]
+          : undefined)
+      if (!subscriptionId) continue
+      slices[subscriptionId] ??= {}
+      slices[subscriptionId]![node.name] = {
+        class: node.class,
+        renamedNode: node.proxy,
+      }
+    }
+    return slices
+  }
 
   // ---- Auth middleware: applied to every route except public ones. ----
   function isPublic(path: string): boolean {
@@ -532,6 +757,183 @@ export function createControlRouter(deps: ControlRouterDeps): App {
       return JSON.stringify(value ?? null)
     }),
   )
+
+  // ---- Node quality check (capability-gated) ----
+  const nodeCheckUnavailable = defineEventHandler((event) =>
+    badRequest(event, 'node-check unavailable', 404),
+  )
+  if (!nodeCheck) {
+    router.get(`${PREFIX}/node-check/config`, nodeCheckUnavailable)
+    router.put(`${PREFIX}/node-check/config`, nodeCheckUnavailable)
+    router.post(`${PREFIX}/node-check/detect`, nodeCheckUnavailable)
+    router.get(`${PREFIX}/node-check/status`, nodeCheckUnavailable)
+    router.post(`${PREFIX}/node-check/apply`, nodeCheckUnavailable)
+  } else {
+    router.get(
+      `${PREFIX}/node-check/config`,
+      defineEventHandler(() => nodeCheck.configStore.readConfig()),
+    )
+    router.put(
+      `${PREFIX}/node-check/config`,
+      defineEventHandler(async (event) => {
+        const raw = await readBody(event)
+        const serialized = JSON.stringify(raw ?? null)
+        if (
+          serialized === undefined ||
+          Buffer.byteLength(serialized, 'utf8') >
+            NODE_CHECK_MAX_CONFIG_PATCH_BYTES ||
+          !validNodeCheckPatch(raw)
+        ) {
+          return badRequest(event, 'invalid node-check config')
+        }
+        return nodeCheck.configStore.writeConfig((current) => {
+          const normalizedCurrent = normalizeNodeCheckConfig(current)
+          const merged = normalizeNodeCheckConfig({
+            ...normalizedCurrent,
+            ...raw,
+            ...(isPlainObject(raw.settings)
+              ? {
+                  settings: {
+                    ...normalizedCurrent.settings,
+                    ...raw.settings,
+                  },
+                }
+              : {}),
+            ...(isPlainObject(raw.tags)
+              ? { tags: { ...normalizedCurrent.tags, ...raw.tags } }
+              : {}),
+            ...(isPlainObject(raw.refreshTransport)
+              ? {
+                  refreshTransport: {
+                    ...normalizedCurrent.refreshTransport,
+                    ...raw.refreshTransport,
+                  },
+                }
+              : {}),
+            ...(Array.isArray(raw.githubProxies)
+              ? { githubProxies: raw.githubProxies }
+              : {}),
+          })
+          Object.assign(current, merged)
+        })
+      }),
+    )
+    router.post(
+      `${PREFIX}/node-check/detect`,
+      defineEventHandler(async (event) => {
+        const body = await readBody(event).catch(() => undefined)
+        if (!isPlainObject(body) || Object.keys(body).length !== 1) {
+          return badRequest(event, 'invalid node-check detection request')
+        }
+        const ids = body.subscriptionIds
+        if (
+          !Array.isArray(ids) ||
+          ids.length === 0 ||
+          ids.length > NODE_CHECK_MAX_SUBSCRIPTIONS ||
+          ids.some((id) => !validNodeCheckId(id)) ||
+          new Set(ids).size !== ids.length
+        ) {
+          return badRequest(event, 'invalid subscriptionIds')
+        }
+        const metas = await profiles.list()
+        const selected = ids.map((id) => {
+          const meta = metas.find((item) => item.id === id)
+          if (!meta || meta.type !== 'remote' || !meta.url) {
+            throw createError({
+              statusCode: 400,
+              statusMessage: 'invalid node-check subscription',
+              data: { error: `subscription unavailable: ${id}` },
+            })
+          }
+          return meta
+        })
+        const config = await nodeCheck.configStore.readConfig()
+        let acquired: string
+        const subscriptionByTempName: Record<string, string> = {}
+        try {
+          const acquiredContents = await Promise.all(
+            selected.map((meta) =>
+              nodeCheck
+                .acquire(
+                  meta.url!,
+                  config.refreshTransport[meta.id] ?? { mode: 'direct' },
+                )
+                .then((result) => result.content),
+            ),
+          )
+          const proxies: Record<string, unknown>[] = []
+          for (const [index, content] of acquiredContents.entries()) {
+            const subscriptionId = selected[index]!.id
+            const subscriptionProxies = parseNodeCheckProxies(content)
+            const start = proxies.length + 1
+            proxies.push(...subscriptionProxies)
+            const end = proxies.length
+            for (let position = start; position <= end; position += 1) {
+              subscriptionByTempName[`__nc_${position}`] = subscriptionId
+            }
+          }
+          acquired = buildFrozenInput(proxies).content
+        } catch {
+          return badRequest(event, 'subscription acquisition failed', 502)
+        }
+        const jobId = await nodeCheck.jobManager.start({
+          subscriptionIds: ids as string[],
+          frozenYamlContent: acquired,
+          subscriptionByTempName,
+          tag: config.tags[ids[0] as string],
+        })
+        return { jobId }
+      }),
+    )
+    router.get(
+      `${PREFIX}/node-check/status`,
+      defineEventHandler(async (event) => {
+        const id = getQuery(event).job
+        if (!validNodeCheckId(id)) {
+          return badRequest(event, 'invalid job id')
+        }
+        return nodeCheck.jobManager.getStatus(id)
+      }),
+    )
+    router.post(
+      `${PREFIX}/node-check/apply`,
+      defineEventHandler(async (event) => {
+        const body = await readBody(event).catch(() => undefined)
+        if (
+          !isPlainObject(body) ||
+          Object.keys(body).length !== 1 ||
+          !validNodeCheckId(body.jobId)
+        ) {
+          return badRequest(event, 'invalid job id')
+        }
+        const jobId = body.jobId as string
+        let result: DetectionResult
+        try {
+          const applied = await nodeCheck.jobManager.apply(jobId)
+          if (!applied) {
+            return badRequest(event, 'job result is unavailable', 409)
+          }
+          result = applied
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          return badRequest(event, message, 409)
+        }
+        const slices = slicesFromResult(result)
+        await nodeCheck.exportNodeSets(nodeCheck.configStore, slices)
+        const applied = await nodeCheck.configStore.readConfig()
+        const providers = Object.fromEntries(
+          NODE_CHECK_CLASSES.map((nodeClass) => [
+            nodeClass,
+            applied.exports[nodeClass],
+          ]),
+        )
+        return {
+          generation: applied.exports.ai?.generation,
+          providers,
+        }
+      }),
+    )
+  }
   router.put(
     `${PREFIX}/config/section`,
     defineEventHandler(async (event) => {
