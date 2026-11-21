@@ -1,6 +1,16 @@
 # Subscription Quality Check & Node Classification — Implementation Plan (v3.3, finalized)
 
-> **Status:** v3.3 — Codex-reviewed. Phase 0a toolchain spike DONE (NekoSpeed builds + real detection JSON verified against source). NOT executed beyond spike — awaiting user confirmation before Phase 1 implementation.
+> **Status:** v3.3 — COMPLETE. All phases implemented, built, deployed to test container 8084, and verified end-to-end with a real detection (job → export → file-provider YAML → re-export generation bump). Production 8080 untouched. Bug found & fixed during E2E: NekoSpeed writes timestamped result JSON, not result.json.
+
+**Delivery state (2026-11-21):**
+
+- Branch `feature/node-quality-check` pushed to TimouL/metacubexd; 10 commits (config, acquire, detect, export, jobs, API, UI, Dockerfile/agent wiring, TASK notes, result-JSON fix).
+- Tests: agent 352, UI 726, all green; full suite run before delivery.
+- Product image `metacubexd-node-check:v2` built (NekoSpeed 6c59f3d + font-noto-cjk + agent capability wired via supervisor.ts).
+- Test container `metacubexd-nc3` on 8084/9094/7894 (add-host host.docker.internal, shared nc-data volume) left running for user acceptance. Interim containers nc1/nc2 stopped.
+- E2E verified: import 1-node subscription → detect job completed → apply produced ai/streaming/download providers at `/data/node-sets/current/*.yaml` with stable names (`nc_美国_AI_2`), symlink `.staging/1`; re-detect → apply → generation 2, symlink flipped, old staging pruned. Funnel correct (node in AI only, streaming/download empty).
+- Known limitation: generalProxy mode requires a dispatcher injection (undici not a direct agent dep); direct + githubProxy modes fully functional.
+- Note: SSRF guard correctly blocks private-network subscription URLs (local test used host.docker.internal hostname).
 
 **Goal:** Panel-driven: bulk-add/tag subscriptions → one-pass NekoSpeed quality/speed/landing-region check → funnel classification (AI → streaming → download) → export each class as a **mihomo-consumable proxy-provider file** for fallback / download groups.
 
