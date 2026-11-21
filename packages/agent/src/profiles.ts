@@ -263,6 +263,7 @@ export function createProfileStore(opts: ProfileStoreOptions): ProfileStore {
       if (!meta) throw new Error(`profile not found: ${id}`)
       if (p.content != null) await atomicWrite(profilePath(id), p.content)
       if (p.name != null) meta.name = p.name
+      if (p.url != null) meta.url = p.url
       if (p.enabled != null) meta.enabled = p.enabled
       // 0 is meaningful (disables auto-update) so distinguish it from omitted.
       if (p.updateInterval != null) meta.updateInterval = p.updateInterval
@@ -272,6 +273,7 @@ export function createProfileStore(opts: ProfileStoreOptions): ProfileStore {
       // subscription refresh schedule.
       if (
         p.name != null ||
+        p.url != null ||
         p.content != null ||
         p.enabled != null ||
         p.updateInterval != null

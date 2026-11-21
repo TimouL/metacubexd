@@ -139,6 +139,15 @@ describe('createAgent', () => {
     expect(agent.tunController).toBe(tunController)
   })
 
+  it('info().features includes node-check only when a checker binary is configured', () => {
+    expect(createAgent(opts()).info().features).not.toContain('node-check')
+    const enabled = createAgent({
+      ...opts(),
+      nodeCheckBinaryPath: '/fake/nekospeed',
+    })
+    expect(enabled.info().features).toContain('node-check')
+  })
+
   it('re-exports the public surface', () => {
     expect(typeof createSupervisor).toBe('function')
     expect(typeof createProfileStore).toBe('function')

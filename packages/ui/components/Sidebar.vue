@@ -10,6 +10,7 @@ import {
   IconFileStack,
   IconGlobe,
   IconHome,
+  IconListCheck,
   IconMenu2,
   IconNetwork,
   IconPower,
@@ -45,6 +46,13 @@ const navItems = computed(() => {
   ]
   if (hasFeature('profiles')) {
     items.push({ href: '/profiles', name: t('profiles'), icon: IconFileCode })
+  }
+  if (hasFeature('node-check')) {
+    items.push({
+      href: '/node-check',
+      name: t('nodeCheck'),
+      icon: IconListCheck,
+    })
   }
   // Desktop/server only: one entry point for everything the bundled agent
   // manages (kernel lifecycle, version/geo, system proxy, network sections,

@@ -336,4 +336,34 @@ describe('composables/useControlApi methods', () => {
     await useControlApi().uninstallTun()
     expect(post).toHaveBeenCalledWith('tun/uninstall')
   })
+
+  it('node-check methods use the control API contract', async () => {
+    const api = useControlApi()
+    await api.getNodeCheckConfig()
+    await api.updateNodeCheckConfig({ tags: { sub: 'free' } })
+    await api.startNodeCheckDetect(['sub'])
+    await api.getNodeCheckStatus('job')
+    await api.getNodeCheckResult('job')
+    await api.applyNodeCheck('job')
+    expect(get).toHaveBeenCalledWith('node-check/config')
+    expect(put).toHaveBeenCalledWith('node-check/config', {
+      json: { tags: { sub: 'free' } },
+    })
+    expect(post).toHaveBeenCalledWith(
+      'node-check/detect',
+      expect.objectContaining({ json: { subscriptionIds: ['sub'] } }),
+    )
+    expect(get).toHaveBeenCalledWith('node-check/status', {
+      searchParams: { job: 'job', result: 'false' },
+      timeout: expect.any(Number),
+    })
+    expect(get).toHaveBeenCalledWith('node-check/status', {
+      searchParams: { job: 'job', result: 'true' },
+      timeout: expect.any(Number),
+    })
+    expect(post).toHaveBeenCalledWith(
+      'node-check/apply',
+      expect.objectContaining({ json: { jobId: 'job' } }),
+    )
+  })
 })

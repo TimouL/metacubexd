@@ -4,6 +4,12 @@ import type {
   GeoUpdateResult,
   KernelState,
   KernelVersions,
+  NodeCheckApplyResponse,
+  NodeCheckConfig,
+  NodeCheckConfigPatch,
+  NodeCheckDetectionResult,
+  NodeCheckDetectResponse,
+  NodeCheckJobStatus,
   ProfileDetail,
   ProfileEditorPreview,
   ProfileEditorSnapshot,
@@ -26,6 +32,9 @@ const PROFILE_SUBSCRIPTION_TIMEOUT = 45_000
 const PROFILE_VALIDATE_TIMEOUT = 330_000
 const PROFILE_ACTIVATE_TIMEOUT = 360_000
 const PROFILE_REFRESH_AND_ACTIVATE_TIMEOUT = 390_000
+const NODE_CHECK_DETECT_TIMEOUT = 60_000
+const NODE_CHECK_STATUS_TIMEOUT = 30_000
+const NODE_CHECK_APPLY_TIMEOUT = 120_000
 
 export interface ControlConfig {
   base: string
@@ -109,6 +118,7 @@ export function useControlApi() {
       id: string,
       body: {
         name?: string
+        url?: string
         content?: string
         enabled?: boolean
         // minutes; remote-only. 0 disables auto-update.
@@ -258,5 +268,41 @@ export function useControlApi() {
     // Remove the privileged helper service entirely (tears TUN down to the
     // sidecar first if active). Echoes the post-uninstall TunStatus.
     uninstallTun: () => client.post('tun/uninstall').json<TunStatus>(),
+
+    // Node quality check (capability-gated 'node-check'). The detection POST
+    // only starts an asynchronous agent job; status/apply use bounded polling
+    // in useNodeCheck rather than one long HTTP request.
+    getNodeCheckConfig: () =>
+      client.get('node-check/config').json<NodeCheckConfig>(),
+    updateNodeCheckConfig: (patch: NodeCheckConfigPatch) =>
+      client.put('node-check/config', { json: patch }).json<NodeCheckConfig>(),
+    startNodeCheckDetect: (subscriptionIds: string[]) =>
+      client
+        .post('node-check/detect', {
+          json: { subscriptionIds },
+          timeout: NODE_CHECK_DETECT_TIMEOUT,
+        })
+        .json<NodeCheckDetectResponse>(),
+    getNodeCheckStatus: (jobId: string) =>
+      client
+        .get('node-check/status', {
+          searchParams: { job: jobId, result: 'false' },
+          timeout: NODE_CHECK_STATUS_TIMEOUT,
+        })
+        .json<NodeCheckJobStatus>(),
+    getNodeCheckResult: (jobId: string) =>
+      client
+        .get('node-check/status', {
+          searchParams: { job: jobId, result: 'true' },
+          timeout: NODE_CHECK_STATUS_TIMEOUT,
+        })
+        .json<NodeCheckDetectionResult>(),
+    applyNodeCheck: (jobId: string) =>
+      client
+        .post('node-check/apply', {
+          json: { jobId },
+          timeout: NODE_CHECK_APPLY_TIMEOUT,
+        })
+        .json<NodeCheckApplyResponse>(),
   }
 }

@@ -41,4 +41,10 @@ describe('nuxt page route outlets', () => {
     expect(source).toMatch(/<template\s+v-if="!isEditRoute">/)
     expect(source).toMatch(/<NuxtPage\s+v-else\s*\/>/)
   })
+
+  it('has a dedicated node-check route page', () => {
+    expect(readFileSync(join(pagesDir, 'node-check.vue'), 'utf8')).toContain(
+      'useNodeCheck()',
+    )
+  })
 })

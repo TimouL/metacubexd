@@ -77,9 +77,8 @@ export interface NodeCheckRouterDeps {
       tag?: string
     }) => Promise<string>
     getStatus: (id: string) => Promise<unknown>
-    apply: (
-      jobId: string,
-    ) => Promise<DetectionResult | undefined> | DetectionResult | undefined
+    getResult?: (id: string) => Promise<unknown>
+    apply: (jobId: string) => Promise<unknown> | unknown
   }
   exportNodeSets: (
     store: NodeCheckConfigStore,
@@ -513,6 +512,7 @@ export function createControlRouter(deps: ControlRouterDeps): App {
       const id = getRouterParam(event, 'id')!
       const body = (await readBody(event)) as {
         name?: string
+        url?: string
         content?: string
         enabled?: boolean
         // minutes; remote-only. 0 disables auto-update; omit leaves it untouched.
@@ -771,7 +771,12 @@ export function createControlRouter(deps: ControlRouterDeps): App {
   } else {
     router.get(
       `${PREFIX}/node-check/config`,
-      defineEventHandler(() => nodeCheck.configStore.readConfig()),
+      defineEventHandler(async () => ({
+        ...(await nodeCheck.configStore.readConfig()),
+        remoteProfiles: (await profiles.list()).filter(
+          (profile) => profile.type === 'remote' && Boolean(profile.url),
+        ),
+      })),
     )
     router.put(
       `${PREFIX}/node-check/config`,
@@ -888,9 +893,16 @@ export function createControlRouter(deps: ControlRouterDeps): App {
     router.get(
       `${PREFIX}/node-check/status`,
       defineEventHandler(async (event) => {
-        const id = getQuery(event).job
+        const query = getQuery(event)
+        const id = query.job
         if (!validNodeCheckId(id)) {
           return badRequest(event, 'invalid job id')
+        }
+        if (query.result === 'true') {
+          const result = await nodeCheck.jobManager.getResult?.(id)
+          if (!result)
+            return badRequest(event, 'job result is unavailable', 409)
+          return result
         }
         return nodeCheck.jobManager.getStatus(id)
       }),
@@ -913,7 +925,7 @@ export function createControlRouter(deps: ControlRouterDeps): App {
           if (!applied) {
             return badRequest(event, 'job result is unavailable', 409)
           }
-          result = applied
+          result = applied as DetectionResult
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
           return badRequest(event, message, 409)

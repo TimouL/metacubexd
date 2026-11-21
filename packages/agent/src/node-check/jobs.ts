@@ -39,7 +39,10 @@ export interface JobManagerOptions {
     frozenYamlContent: string,
     opts?: DetectionOptions,
   ) => Promise<DetectionResult>
-  apply?: (resultId: string, request: JobRequest) => unknown
+  apply?: (
+    resultId: string,
+    request: JobRequest,
+  ) => ApplyResult | Promise<ApplyResult>
   loadConfig?: () => Promise<NodeCheckConfig>
   loadProxies?: () => Promise<unknown[]>
   buildFrozenYaml?: (proxies: unknown[]) => string | Promise<string>
@@ -87,6 +90,10 @@ export interface JobStatus {
   resultId?: string
   error?: string
   expired?: boolean
+}
+
+export interface JobDetail extends JobStatus {
+  result?: DetectionResult
 }
 
 export interface StoredResult {
@@ -614,6 +621,25 @@ function createJobManager(opts: JobManagerOptions) {
         : expiredStatus(id, expiredErrors.get(id) ?? 'Job not found')
     },
 
+    async getResult(id: string): Promise<DetectionResult | undefined> {
+      await ensureLoaded()
+      enforceRetention(true)
+      const job = jobs.get(id)
+      const resultId = job?.resultId ?? (job ? id : undefined)
+      const entry = resultId
+        ? (results.get(resultId) ?? results.get(id))
+        : undefined
+      if (!entry) return undefined
+      const result = structuredClone(entry.result)
+      if (entry.subscriptionByTempName) {
+        result.subscriptionByTempName = entry.subscriptionByTempName
+      }
+      if (entry.request.subscriptionIds.length > 0) {
+        result.subscriptionIds = entry.request.subscriptionIds
+      }
+      return result
+    },
+
     async cancel(id: string): Promise<boolean> {
       await ensureLoaded()
       const job = jobs.get(id)
@@ -677,8 +703,7 @@ function createJobManager(opts: JobManagerOptions) {
       }
       const resultId = job.resultId ?? id
       updateJob(id, { resultId })
-      const value = (await opts.apply(resultId, entry.request)) as
-        ApplyResult | undefined
+      const value = await opts.apply(resultId, entry.request)
       applied.add(id)
       applyResults.set(id, value ?? undefined)
       await persist()

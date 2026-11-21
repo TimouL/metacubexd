@@ -106,6 +106,7 @@ export type ParseResultLike = (resultPath: string) => Promise<unknown>
 export interface DetectionOptions {
   tag?: string
   binaryPath?: string
+  fontPath?: string
   tempDir?: string
   duration?: number
   threads?: number
@@ -460,7 +461,7 @@ export async function runDetection(
       '-tests',
       'speed,ai,media',
       '-font',
-      NEKOSPEED_FONT,
+      opts.fontPath ?? NEKOSPEED_FONT,
       '-preflight=false',
       '-duration',
       String(cap(opts.duration, 1, limits.maxDuration)),

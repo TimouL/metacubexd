@@ -135,6 +135,7 @@ export interface ProfileStore {
     id: string,
     p: {
       name?: string
+      url?: string
       content?: string
       enabled?: boolean
       // minutes; only meaningful for remote profiles (drives the scheduler).

@@ -52,6 +52,7 @@ export interface ProfileMeta {
 // GET /api/control/info
 export type ControlFeature =
   | 'profiles'
+  | 'node-check'
   | 'logs-sse'
   | 'kernel-control'
   | 'system-proxy'
@@ -174,4 +175,109 @@ export interface TunStatus {
   enabled: boolean
   mode: 'sidecar' | 'tun'
   stack?: string
+}
+
+export type NodeCheckClass = 'ai' | 'streaming' | 'download'
+export type NodeCheckResultClass = NodeCheckClass | 'discard'
+export type NodeCheckTransportMode = 'direct' | 'generalProxy' | 'githubProxy'
+
+export interface NodeCheckRefreshTransport {
+  mode: NodeCheckTransportMode
+  proxyId?: string
+}
+
+export interface NodeCheckGithubProxy {
+  id: string
+  prefix: string
+  enabled: boolean
+}
+
+export interface NodeCheckSettings {
+  minSpeedBytes: number
+  speedTiers: number[]
+  regionNames: Record<string, string>
+}
+
+export interface NodeCheckExportRecord {
+  providerName: string
+  filePath: string
+  generation: number
+}
+
+export interface NodeCheckConfig {
+  schemaVersion: number
+  tags: Record<string, string>
+  refreshTransport: Record<string, NodeCheckRefreshTransport>
+  githubProxies: NodeCheckGithubProxy[]
+  generalProxy?: string
+  settings: NodeCheckSettings
+  exports: Partial<Record<NodeCheckClass, NodeCheckExportRecord>>
+  jobs: {
+    activeJobId?: string
+    completed: unknown[]
+  }
+  remoteProfiles?: ProfileMeta[]
+}
+
+export type NodeCheckConfigPatch = Partial<
+  Pick<
+    NodeCheckConfig,
+    'tags' | 'refreshTransport' | 'githubProxies' | 'generalProxy' | 'settings'
+  >
+>
+
+export interface NodeCheckDetectResponse {
+  jobId: string
+}
+
+export interface NodeCheckJobStatus {
+  id: string
+  state: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  progress: number
+  createdAt: number
+  updatedAt: number
+  subscriptionIds: string[]
+  resultId?: string
+  error?: string
+  expired?: boolean
+}
+
+export interface NodeCheckCapabilityResult {
+  platform: string
+  status: string
+  region?: string
+  info?: string
+}
+
+export interface NodeCheckResultNode {
+  index: number
+  name: string
+  type?: string
+  server?: string
+  error?: string
+  latency: Record<string, unknown>
+  speed: { avg?: number; max?: number; perSecond?: unknown[] }
+  media: NodeCheckCapabilityResult[]
+  ai: NodeCheckCapabilityResult[]
+  inbound?: Record<string, unknown>
+  outbound?: Record<string, unknown>
+  class: NodeCheckResultClass
+  aliveness: 'alive' | 'dead' | 'unknown'
+  proxy?: Record<string, unknown>
+  renamed?: string
+  subscriptionId?: string
+  speedMBs?: number
+  region?: string
+}
+
+export interface NodeCheckDetectionResult {
+  nodes: NodeCheckResultNode[]
+  classes?: Partial<Record<NodeCheckClass, NodeCheckResultNode[]>>
+  subscriptionIds?: string[]
+  subscriptionByTempName?: Record<string, string>
+}
+
+export interface NodeCheckApplyResponse {
+  generation?: number
+  providers: Partial<Record<NodeCheckClass, NodeCheckExportRecord>>
 }

@@ -6,6 +6,7 @@ import {
   IconFileStack,
   IconGlobe,
   IconHome,
+  IconListCheck,
   IconNetwork,
   IconPlus,
   IconRuler,
@@ -52,6 +53,13 @@ const secondaryItems = computed(() => {
       href: '/profiles',
       name: t('profiles'),
       icon: IconFileCode,
+    })
+  }
+  if (hasFeature('node-check')) {
+    items.push({
+      href: '/node-check',
+      name: t('nodeCheck'),
+      icon: IconListCheck,
     })
   }
   return items
