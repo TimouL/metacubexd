@@ -8,6 +8,8 @@ export interface ServerEnv {
   mixedPort: number
   dataDir: string
   mihomoBin: string
+  nekospeedBin: string
+  nekospeedFont: string
   controlToken: string
   clashSecret: string
   githubToken: string
@@ -27,6 +29,10 @@ export function serverEnv(): ServerEnv {
     mixedPort: int(process.env.MIXED_PORT, 7890),
     dataDir: process.env.DATA_DIR ?? '/data',
     mihomoBin: process.env.MIHOMO_BIN ?? '/usr/local/bin/mihomo',
+    nekospeedBin: process.env.NEKOSPEED_BIN ?? '/usr/local/bin/nekospeed',
+    nekospeedFont:
+      process.env.NEKOSPEED_FONT ??
+      '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',
     controlToken: process.env.CONTROL_TOKEN ?? '',
     clashSecret: process.env.CLASH_SECRET ?? '',
     githubToken: process.env.GITHUB_TOKEN ?? '',
@@ -50,6 +56,8 @@ export function getAgent(): Agent {
   agentSingleton = createAgent({
     binaryPath: env.mihomoBin,
     homeDir: env.dataDir,
+    nodeCheckBinaryPath: env.nekospeedBin,
+    nodeCheckFontPath: env.nekospeedFont,
     profilesDir: join(env.dataDir, 'profiles'),
     activeConfigPath: join(env.dataDir, 'active.yaml'),
     agentToken: env.controlToken || undefined,
