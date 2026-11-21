@@ -1,6 +1,6 @@
 # Subscription Quality Check & Node Classification — Implementation Plan (v3.3, finalized)
 
-> **Status:** v3.3 finalized — incorporates multiple rounds of Codex (auto/gpt-6-astra) review incl. its confirmed decision matrix. NOT executed — awaiting user confirmation to start Phase 0 spike.
+> **Status:** v3.3 — Codex-reviewed. Phase 0a toolchain spike DONE (NekoSpeed builds + real detection JSON verified against source). NOT executed beyond spike — awaiting user confirmation before Phase 1 implementation.
 
 **Goal:** Panel-driven: bulk-add/tag subscriptions → one-pass NekoSpeed quality/speed/landing-region check → funnel classification (AI → streaming → download) → export each class as a **mihomo-consumable proxy-provider file** for fallback / download groups.
 
@@ -63,11 +63,20 @@
   - Unlisted combinations: follow the five liveness steps above (which already cover fatal, all-missing+zero, reqfailed+zero, and the inconclusive catch-all), then apply the funnel to alive nodes. Log any such case for later refinement; do not override the liveness result.
 - **Provider reload:** repository uses **PUT** `/providers/proxies/{name}` (NOT PATCH). Spike MUST: load generation A, publish generation B via symlink, PUT-reload the existing provider, verify its group sees added AND removed nodes — including an empty set. Initial load alone does not prove re-export, the core requirement.
 
-## Phase 0 — Feasibility spike (gated, before any product code)
+### Phase 0a — Toolchain spike (DONE, 2026-11-20)
 
-- Pin NekoSpeed revision + Go 1.25 toolchain; plan Go build stage (upstream ships APK assets, not Linux binaries).
-- Run ONE real detection on a frozen local subscription file; **require**: successful report generation (image-render-first must not block JSON — patched or worked around), JSON file located and parsed, all contract fields present, and **full-object correlation via temp names proven**. Merely `nekospeed -h` or field presence is NOT a pass.
-- Prove complete path: detection → complete proxy YAML → file-provider → actual mihomo group consumption, INCLUDING re-export: load gen A, publish gen B, PUT /providers/proxies/{name} reload, verify group sees added/removed nodes (incl. empty set). If any link fails → stop and report.
+- **DONE:** NekoSpeed pinned to main (go.mod requires Go 1.25, upstream releases only APK — no Linux binary). Built successfully via `golang:1.25-alpine` stage (image: `docker.1ms.run/library/golang:1.25-alpine`, GOPROXY=https://goproxy.cn) in scratch Dockerfile `~/.hermes/cache/scratch/neko-build/Dockerfile`. Binary runs; CLI flags confirmed (`-sub/-config/-o/-tests/-filter/-font/-proxy/...`).
+- **DONE:** Ran a real detection on a frozen local subscription file (`real-sub.yaml`, 189 nodes, filtered to 1 node, `-duration 1 -threads 1 -ping-count 1 -preflight=false`). Result JSON produced and parsed. Verified against source (`internal/model/model.go`, `internal/report/json.go`):
+  - status enum EXACTLY matches the decision matrix: `unlock`/`pending`/`senttocn`/`failed`/`reqfailed`/`na`.
+  - `speed.avg` unit = **bytes/sec** (source comment "下行测速结果（字节/秒）") → 1 MiB/s = 1,048,576 bytes/s threshold confirmed.
+  - JSON fields: `nodes[].index`, `name`, `type`, `server`, `error` (fatal), `latency{avgHTTPS,avgTlsRTT,packetLoss}`, `speed{avg,max,perSecond}`, `media[]{platform,status,region,info}`, `ai[]{...}`, `inbound{ip,country,city,...}`, `outbound{...}` (landing region — omitempty, only present on successful probes).
+  - `index`+`name` correlate back to the original subscription proxy → temp-name correlation contract is feasible.
+- **PITFALL confirmed & solved:** image rendering is FAIL-FATAL — without a usable CJK font, the whole run aborts and NO JSON is written (out dir empty). Fix verified: install `font-noto-cjk` in runtime + pass `-font /usr/share/fonts/noto/NotoSansCJK-Regular.ttc` explicitly (NekoSpeed's autodetect looks in `noto-cjk/` which doesn't match alpine's `noto/`). This must be baked into the agent's invocation.
+- **TIMING:** one node with ai+media took ~1m12s (overseas unlock probes dominate). Full 189-node runs are long → agent must support node-count caps, short duration, and per-run timeout/bandwidth bounds (Phase 1 Task 3).
+
+### Phase 0b — Provider-consumption proof (TODO in Phase 1/3)
+
+- Prove complete path: complete proxy YAML → file-provider → actual mihomo group consumption, INCLUDING re-export: load gen A, publish gen B, PUT /providers/proxies/{name} reload, verify group sees added/removed nodes (incl. empty set). If any link fails → stop and report.
 
 ## Phase 1 — Agent foundation
 
