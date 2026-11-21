@@ -1,7 +1,14 @@
 import type { ChildProcess } from 'node:child_process'
 import type { NodeCheckClass } from './config'
 import { spawn as nodeSpawn } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { parse, stringify } from 'yaml'
@@ -357,6 +364,22 @@ async function defaultParseResult(resultPath: string): Promise<unknown> {
   return JSON.parse(content)
 }
 
+// NekoSpeed writes `<name>_<timestamp>_result.json`, not a fixed result.json.
+// Resolve the single generated report; fall back to result.json for injected
+// test doubles that write a fixed path.
+export async function resolveResultPath(outDir: string): Promise<string> {
+  const fallback = join(outDir, 'result.json')
+  let entries: string[] = []
+  try {
+    entries = await readdir(outDir)
+  } catch {
+    return fallback
+  }
+  const reports = entries.filter((name) => name.endsWith('_result.json')).sort()
+  if (reports.length > 0) return join(outDir, reports[reports.length - 1]!)
+  return fallback
+}
+
 async function prepareWorkingDir(tempDir?: string): Promise<{
   root: string
   owned: boolean
@@ -440,7 +463,6 @@ export async function runDetection(
   const { root: workingRoot, owned } = await prepareWorkingDir(opts.tempDir)
   const outDir = join(workingRoot, 'out')
   const configPath = join(workingRoot, 'frozen.yaml')
-  const resultPath = join(outDir, 'result.json')
 
   try {
     await mkdir(outDir, { recursive: true, mode: 0o700 })
@@ -484,7 +506,8 @@ export async function runDetection(
     })
 
     const parse = opts.parseResult ?? defaultParseResult
-    const parsed = normalizeDetectionJson(await parse(resultPath))
+    const actualResultPath = await resolveResultPath(outDir)
+    const parsed = normalizeDetectionJson(await parse(actualResultPath))
     const originals = [...frozenInput.proxiesByTempName.values()]
 
     const classes: Record<NodeCheckClass, ClassifiedNode[]> = {

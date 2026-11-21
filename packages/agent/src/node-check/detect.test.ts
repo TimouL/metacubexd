@@ -10,6 +10,7 @@ import {
   classNameify,
   DEFAULT_DETECTION_LIMITS,
   renderClassYaml,
+  resolveResultPath,
   runDetection,
 } from './detect'
 
@@ -567,5 +568,26 @@ describe('runDetection', () => {
 
   it('renders an empty class as proxies: []', () => {
     expect(renderClassYaml([])).toBe('proxies: []\n')
+  })
+
+  it('resolves NekoSpeed timestamped result file over fixed result.json', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'nc-result-path-'))
+    try {
+      const { writeFileSync } = await import('node:fs')
+      writeFileSync(join(dir, 'result_20261121_030000_result.json'), '{}')
+      const found = await resolveResultPath(dir)
+      expect(found).toBe(join(dir, 'result_20261121_030000_result.json'))
+      // falls back to fixed path when no timestamped report exists
+      writeFileSync(join(dir, 'result.json'), '{}')
+      const dir2 = mkdtempSync(join(tmpdir(), 'nc-result-path2-'))
+      try {
+        writeFileSync(join(dir2, 'result.json'), '{}')
+        expect(await resolveResultPath(dir2)).toBe(join(dir2, 'result.json'))
+      } finally {
+        rmSync(dir2, { recursive: true, force: true })
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
